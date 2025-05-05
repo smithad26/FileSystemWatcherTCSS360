@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
@@ -37,13 +38,58 @@ public class MainView extends Application {
         monitorMenu = new Menu("Monitor");
         databaseMenu = new Menu("Database");
         helpMenu = new Menu("Help");
+
+        // Disabled the separator lines
+        Menu separator1 = new Menu("|");
+        separator1.setDisable(true);
+        Menu separator2 = new Menu("|");
+        separator2.setDisable(true);
+        Menu separator3 = new Menu("|");
+        separator3.setDisable(true);
+
+        //Add dropdown options to the menu bar items
+        //File
+        MenuItem newMonitorItem = new MenuItem("New Monitor ");
+        newMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+N"));
+
+        MenuItem exitItem = new MenuItem("Exit");
+        exitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
+
+        fileMenu.getItems().addAll(newMonitorItem, new SeparatorMenuItem(), exitItem);
+
+        //Monitor
+        MenuItem startMonitorItem = new MenuItem("Start Monitoring");
+        startMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
+
+        MenuItem stopMonitorItem = new MenuItem("Stop Monitoring");
+        stopMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
+
+        monitorMenu.getItems().addAll(startMonitorItem, stopMonitorItem);
+
+        //Database
+        MenuItem queryEventsItem = new MenuItem("Query");
+        queryEventsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+D"));
+
+        MenuItem exportLogsItem = new MenuItem("Export");
+        exportLogsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
+
+        databaseMenu.getItems().addAll(queryEventsItem, exportLogsItem);
+
+        //Help
+        MenuItem aboutItem = new MenuItem("About");
+        aboutItem.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
+
+        helpMenu.getItems().add(aboutItem);
+
+
+
         menuBar.getMenus().addAll(
                 fileMenu,
-                new Menu("|"),
+                separator1,
                 monitorMenu,
-                new Menu("|"),
+                separator2,
                 databaseMenu,
-                new Menu("|"),
+                separator3,
                 helpMenu
         );
 
@@ -77,6 +123,12 @@ public class MainView extends Application {
         stopButton.setPadding(new Insets(5, 30, 5, 30));
         queryButton = new Button("Query");
         queryButton.setPadding(new Insets(5, 30, 5, 30));
+
+        //Added: Query pop up window opens when Query button is clicked
+        queryButton.setOnAction(e -> {
+            new QueryView().display();
+        });
+
         startButton.setPrefWidth(150);
         stopButton.setPrefWidth(150);
         queryButton.setPrefWidth(150);
