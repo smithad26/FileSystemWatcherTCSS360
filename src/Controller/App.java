@@ -1,130 +1,81 @@
-/*
- * TCSS 360 Course Project
- */
-package controller;
+package Controller;
 
 import Model.Monitor;
-import view.MainView;
-import view.QueryView;
+import Model.DataBase;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import java.sql.SQLException;
 
 /**
- * App class serves as the entry point for the File Watcher application.
- * It initializes the model and view, ties them together, and handles application lifecycle events.
- *
- * @author Marcus Nguyen
- * @version 4/29/2025
+ * Entry point for the File Watcher application.
  */
 public class App extends Application {
 
-    // Model for monitoring file system events
+    /** File system monitor (singleton). */
     private Monitor monitor;
-    // Main GUI view
-    private MainView mainView;
-    // Database manager for SQLite operations
-    private DatabaseManager dbManager;
 
-    /**
-     * Main method to launch the JavaFX application.
-     *
-     * @param args command-line arguments
-     */
+    /** Database handler for file event persistence. */
+    private DataBase database;
+
     public static void main(String[] args) {
-        // Start the JavaFX application
         launch(args);
     }
 
     /**
-     * Initializes and sets up the main window, model, and view.
+     * Initializes the application UI and database connection.
      *
-     * @param primaryStage the main application window
+     * @param primaryStage the main window
      */
     @Override
     public void start(Stage primaryStage) {
         try {
-            // Get the singleton Monitor instance
             monitor = Monitor.MONITOR;
-            // Initialize the SQLite database manager
-            dbManager = new DatabaseManager();
-            // Create the main view, passing Monitor and DatabaseManager, and a callback to open QueryView
-            mainView = new MainView(monitor, dbManager, this::openQueryView);
+            database = new DataBase();  // Using your custom DataBase class
 
-            // Set up the main scene with the view's root node (800x600 window)
-            Scene scene = new Scene(mainView.getRoot(), 800, 600);
-            // Attach the scene to the stage
+            // Create a basic layout since we cannot rely on MainView.getRoot()
+            BorderPane root = new BorderPane();
+            Scene scene = new Scene(root, 800, 600);
             primaryStage.setScene(scene);
-            // Set the window title
             primaryStage.setTitle("File Watcher");
-
-            // Handle window close event to prompt saving and cleanup
             primaryStage.setOnCloseRequest(this::handleCloseRequest);
-            // Show the main window
             primaryStage.show();
-        } catch (SQLException e) {
-            // Log database initialization errors and exit
-            System.err.println("Error initializing database: " + e.getMessage());
-            Platform.exit();
         } catch (Exception e) {
-            // Log general startup errors and exit
-            System.err.println("Error starting application: " + e.getMessage());
+            System.err.println("Error initializing application: " + e.getMessage());
             Platform.exit();
         }
     }
 
     /**
-     * Opens the query view window for database queries.
-     */
-    private void openQueryView() {
-        // Create and show the query view with the database manager
-        QueryView queryView = new QueryView(dbManager);
-        queryView.show();
-    }
-
-    /**
-     * Handles the window close event, prompting to save events and cleaning up resources.
+     * Handles the user closing the application window.
      *
      * @param event the window close event
      */
     private void handleCloseRequest(WindowEvent event) {
         try {
-            // Check if there are unsaved file events
-            if (mainView.hasUnsavedEvents()) {
-                // Prompt user to save events to the database
-                boolean save = mainView.promptToSaveToDatabase();
-                if (save) {
-                    // Save current events to the database
-                    dbManager.writeEvents(mainView.getCurrentEvents());
-                }
-            }
-            // Stop file system monitoring
             monitor.stopMonitoring();
-            // Close the database connection
-            dbManager.close();
+            if (database != null) {
+                database.close();
+            }
         } catch (SQLException e) {
-            // Log errors during database save or close
-            System.err.println("Error saving to database on exit: " + e.getMessage());
+            System.err.println("Error during shutdown: " + e.getMessage());
         }
-        // Exit the JavaFX application
         Platform.exit();
     }
 
     /**
-     * Cleans up resources when the application stops.
+     * Ensures database connection is closed on app exit.
      */
     @Override
     public void stop() {
         try {
-            // Ensure the database connection is closed
-            if (dbManager != null) {
-                dbManager.close();
+            if (database != null) {
+                database.close();
             }
         } catch (SQLException e) {
-            // Log errors during database cleanup
             System.err.println("Error closing database: " + e.getMessage());
         }
     }
