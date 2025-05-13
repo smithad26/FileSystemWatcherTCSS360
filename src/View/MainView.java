@@ -1,5 +1,6 @@
 package View;
 
+import Model.Monitor;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -27,6 +28,16 @@ public class MainView extends Application {
     // Display area for file events
     private TextArea fileEventArea;
 
+    /**
+     * Access to Monitor class.
+     */
+    private static final Monitor MONITOR = Monitor.getMonitor();
+
+    /**
+     * Alerts when an invalid directory is encountered.
+     */
+    private Alert myDirectoryAlert;
+
 
     @Override
     public void start(Stage primaryStage) {
@@ -38,6 +49,12 @@ public class MainView extends Application {
         monitorMenu = new Menu("Monitor");
         databaseMenu = new Menu("Database");
         helpMenu = new Menu("Help");
+
+        // Alerts
+        myDirectoryAlert = new Alert(Alert.AlertType.ERROR);
+        myDirectoryAlert.setTitle("Error");
+        myDirectoryAlert.setHeaderText(null);
+        myDirectoryAlert.setContentText("Invalid directory");
 
         // Disabled the separator lines
         Menu separator1 = new Menu("|");
@@ -124,11 +141,6 @@ public class MainView extends Application {
         queryButton = new Button("Query");
         queryButton.setPadding(new Insets(5, 30, 5, 30));
 
-        //Added: Query pop up window opens when Query button is clicked
-        queryButton.setOnAction(e -> {
-            new QueryView().display();
-        });
-
         startButton.setPrefWidth(150);
         stopButton.setPrefWidth(150);
         queryButton.setPrefWidth(150);
@@ -137,7 +149,8 @@ public class MainView extends Application {
         VBox buttonBox = new VBox(30, startButton, stopButton, queryButton);
         buttonBox.setPadding(new Insets(40, 10, 0, 30));
 
-
+        // add listeners to components (functionality)
+        addListeners();
 
         //File Event Area
         Label fileEventLabel = new Label("File Event:");
@@ -166,6 +179,42 @@ public class MainView extends Application {
         primaryStage.show();
     }
 
+    /**
+     * Adds listeners to GUI components to add functionality.
+     */
+    private void addListeners() {
 
+        // needs to be fixed
+        startButton.setOnAction(event -> {
+            MONITOR.startMonitoring();
+        });
+
+        // needs to be fixed
+        stopButton.setOnAction(event -> {
+            MONITOR.stopMonitoring();
+        });
+
+        //Added: Query pop up window opens when Query button is clicked
+        queryButton.setOnAction(event -> {
+            new QueryView().display();
+        });
+
+        // needs to be fixed
+        directoryField.setOnAction(event -> {
+            String path = directoryField.getText();
+            try {
+                MONITOR.addFile(path);
+            } catch (Exception e) {
+                myDirectoryAlert.showAndWait();
+            }
+        });
+    }
+
+    /**
+     * Handles events that happen from the model.
+     */
+    private void eventHandling() {
+
+    }
 }
 
