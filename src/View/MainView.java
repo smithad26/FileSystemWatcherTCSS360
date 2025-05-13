@@ -8,6 +8,8 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.DirectoryChooser;
+import java.io.File;
 
 public class MainView extends Application {
 
@@ -118,6 +120,7 @@ public class MainView extends Application {
         extensionDropdown = new ComboBox<>();
         extensionDropdown.setPromptText("Select extension");
         extensionDropdown.setPrefWidth(200);
+        extensionDropdown.getItems().addAll(".txt", ".java", ".log", ".md");
 
         VBox extensionBox = new VBox(5, extensionLabel, extensionDropdown);
 
@@ -186,7 +189,20 @@ public class MainView extends Application {
 
         // needs to be fixed
         startButton.setOnAction(event -> {
-            MONITOR.startMonitoring();
+            String path = directoryField.getText();
+            String extension = extensionDropdown.getValue();
+
+            if (path == null || path.isEmpty()) {
+                myDirectoryAlert.showAndWait();
+                return;
+            }
+
+            try {
+                MONITOR.addFile(path);
+                MONITOR.startMonitoring();
+            } catch (Exception e) {
+                myDirectoryAlert.showAndWait();
+            }
         });
 
         // needs to be fixed
@@ -208,6 +224,16 @@ public class MainView extends Application {
                 myDirectoryAlert.showAndWait();
             }
         });
+
+        browseButton.setOnAction(event -> {
+            DirectoryChooser chooser = new DirectoryChooser();
+            chooser.setTitle("Select Directory");
+            File selectedDir = chooser.showDialog(null);
+            if (selectedDir != null) {
+                directoryField.setText(selectedDir.getAbsolutePath());
+            }
+        });
+
     }
 
     /**
