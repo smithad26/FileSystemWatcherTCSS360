@@ -17,6 +17,11 @@ public class MainView extends Application {
     private MenuBar menuBar;
     private Menu fileMenu, monitorMenu, databaseMenu, helpMenu;
 
+    /**
+     * MenuItems
+     */
+    private MenuItem myAbout;
+
     // Dropdown for selecting file extension to monitor
     private ComboBox<String> extensionDropdown;
 
@@ -51,6 +56,9 @@ public class MainView extends Application {
         monitorMenu = new Menu("Monitor");
         databaseMenu = new Menu("Database");
         helpMenu = new Menu("Help");
+
+        // MenuItems
+        myAbout = new MenuItem("About");
 
         // Alerts
         myDirectoryAlert = new Alert(Alert.AlertType.ERROR);
@@ -95,10 +103,9 @@ public class MainView extends Application {
         databaseMenu.getItems().addAll(queryEventsItem, exportLogsItem);
 
         //Help
-        MenuItem aboutItem = new MenuItem("About");
-        aboutItem.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
+        myAbout.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
 
-        helpMenu.getItems().add(aboutItem);
+        helpMenu.getItems().add(myAbout);
 
 
 
@@ -232,6 +239,26 @@ public class MainView extends Application {
             if (selectedDir != null) {
                 directoryField.setText(selectedDir.getAbsolutePath());
             }
+        });
+
+        myAbout.setOnAction(e -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("About");
+            alert.setHeaderText(null);
+            alert.setContentText("""
+                    SystemFileWatcher Information and Usage:
+                    Developers: Adin Smith, Marcus Nguyen, Mohamed Mohamed
+                    Date: 6/13/2025
+                    Version: 1.0.0
+                   \s
+                    HOW TO USE
+                    Provide a directory from your computer to start monitoring all file activity from. The
+                    user can choose what specific file extensions they want to be monitored from the directory.
+                    Once the program starts monitoring, the program will display any events that occur in the\s
+                    box below. The user has the option to write specific file events to a database, and also
+                    has the option to be notified of events via email.\s
+                   \s""");
+            alert.showAndWait();
         });
 
     }
