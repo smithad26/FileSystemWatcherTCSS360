@@ -16,7 +16,7 @@ import java.sql.SQLException;
 public class App extends Application {
 
     /** File system monitor (singleton). */
-    private Monitor monitor;
+    private static final Monitor MONITOR = Monitor.getMonitor();
 
     /** Database handler for file event persistence. */
     private DataBase database;
@@ -33,7 +33,6 @@ public class App extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            monitor = Monitor.MONITOR;
             database = new DataBase();  // Using your custom DataBase class
 
             // Create a basic layout since we cannot rely on MainView.getRoot()
@@ -56,7 +55,7 @@ public class App extends Application {
      */
     private void handleCloseRequest(WindowEvent event) {
         try {
-            monitor.stopMonitoring();
+            MONITOR.stopMonitoring();
             if (database != null) {
                 database.close();
             }
