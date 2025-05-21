@@ -49,6 +49,7 @@ public class App extends Application {
             System.err.println("Error initializing application: " + e.getMessage());
             Platform.exit();
         }
+
     }
 
     /**
@@ -57,13 +58,15 @@ public class App extends Application {
      * @param event the window close event
      */
     private void handleCloseRequest(WindowEvent event) {
+        System.out.println("[App] Closing application: stopping monitor and closing database...");
         try {
             MONITOR.stopMonitoring();
             if (database != null) {
                 database.close();
+                System.out.println("[App] Database closed.");
             }
         } catch (SQLException e) {
-            System.err.println("Error during shutdown: " + e.getMessage());
+            System.err.println("[App] Error during shutdown: " + e.getMessage());
         }
         Platform.exit();
     }
@@ -73,12 +76,14 @@ public class App extends Application {
      */
     @Override
     public void stop() {
+        System.out.println("[App] stop() called - performing final cleanup...");
         try {
             if (database != null) {
                 database.close();
+                System.out.println("[App] Database connection closed.");
             }
         } catch (SQLException e) {
-            System.err.println("Error closing database: " + e.getMessage());
+            System.err.println("[App] Error closing database in stop(): " + e.getMessage());
         }
     }
 }
