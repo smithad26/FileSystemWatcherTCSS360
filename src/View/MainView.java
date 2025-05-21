@@ -2,13 +2,18 @@ package View;
 
 import Model.Monitor;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.DirectoryChooser;
+import javafx.event.EventHandler;
+
 import java.io.File;
 
 public class MainView extends Application {
@@ -16,6 +21,11 @@ public class MainView extends Application {
     // Menu bar and its menus
     private MenuBar menuBar;
     private Menu fileMenu, monitorMenu, databaseMenu, helpMenu;
+
+    /**
+     * MenuItem for the about section under the Help menu
+     */
+    private MenuItem myAbout;
 
     // Dropdown for selecting file extension to monitor
     private ComboBox<String> extensionDropdown;
@@ -51,6 +61,9 @@ public class MainView extends Application {
         monitorMenu = new Menu("Monitor");
         databaseMenu = new Menu("Database");
         helpMenu = new Menu("Help");
+
+        // MenuItems
+        myAbout = new MenuItem("About");
 
         // Alerts
         myDirectoryAlert = new Alert(Alert.AlertType.ERROR);
@@ -95,10 +108,9 @@ public class MainView extends Application {
         databaseMenu.getItems().addAll(queryEventsItem, exportLogsItem);
 
         //Help
-        MenuItem aboutItem = new MenuItem("About");
-        aboutItem.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
+        myAbout.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
 
-        helpMenu.getItems().add(aboutItem);
+        helpMenu.getItems().add(myAbout);
 
 
 
@@ -176,6 +188,9 @@ public class MainView extends Application {
         layout.setRight(buttonBox);
         layout.setPadding(new Insets(15));
 
+        // Event Handling
+        eventHandling();
+
         //Scene Setup
         Scene scene = new Scene(layout, 700, 800);
         primaryStage.setScene(scene);
@@ -234,13 +249,35 @@ public class MainView extends Application {
             }
         });
 
+        myAbout.setOnAction(e -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("About");
+            alert.setHeaderText(null);
+            alert.setContentText("""
+                    SystemFileWatcher Information and Usage:
+                    Developers: Adin Smith, Marcus Nguyen, Mohamed Mohamed
+                    Date: 6/13/2025
+                    Version: 1.0.0
+                   \s
+                    HOW TO USE
+                    Provide a directory from your computer to start monitoring all file activity from. The
+                    user can choose what specific file extensions they want to be monitored from the directory.
+                    Once the program starts monitoring, the program will display any events that occur in the\s
+                    box below. The user has the option to write specific file events to a database, and also
+                    has the option to be notified of events via email.\s
+                   \s""");
+            alert.showAndWait();
+        });
+
     }
 
     /**
-     * Handles events that happen from the model.
+     * Handles events that happen from the model (or anywhere else).
      */
     private void eventHandling() {
 
+        // monitor fires property changes to fileEventArea
+        fileEventArea.textProperty().bind(MONITOR.getEvents());
     }
 }
 
