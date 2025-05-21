@@ -46,9 +46,14 @@ public class Monitor {
     private WatchService myWatcher;
 
     /**
-     * Determines if monitoring or not
+     * A thread representing the separate monitoring task to be run.
      */
-    private boolean myIsMonitoring;
+    private Thread myMonitorThread;
+
+    /**
+     * A volatile boolean used to stop running the monitoring.
+     */
+    private volatile boolean myRunning;
 
     /**
      * Constructor for Monitor object
@@ -62,7 +67,7 @@ public class Monitor {
         } catch (IOException e) {
             System.out.println("Error caught in Monitor constructor: " + e);
         }
-        myIsMonitoring = false;
+        myRunning = false;
     }
 
     /**
@@ -112,15 +117,20 @@ public class Monitor {
      * Starts monitoring
      */
     public void startMonitoring() {
-        myIsMonitoring = true;
-        monitoring();
+        myRunning = true;
+        myMonitorThread = new Thread(this::monitoring);
+        myMonitorThread.setDaemon(true);
+        myMonitorThread.start();
     }
 
     /**
      * Stops monitoring
      */
     public void stopMonitoring() {
-        myIsMonitoring = false;
+        myRunning = false;
+        if (myMonitorThread != null) {
+            myMonitorThread.interrupt();
+        }
     }
 
     /**
@@ -133,13 +143,21 @@ public class Monitor {
     }
 
     /**
+     * Getter for myEvents for binding the MianView in the controller
+     *
+     * @return the events StringProperty
+     */
+    public StringProperty getEvents() {
+        return myEvents;
+    }
+
+    /**
      * Monitors for events and fires a property change when an event occurs.
      */
     private void monitoring() {
-      // while (myIsMonitoring) {
            WatchKey key;
            try {
-               while ((key = myWatcher.take()) != null && myIsMonitoring) {
+               while (myRunning && (key = myWatcher.take()) != null) {
                    Path dir = myKeys.get(key);
                    if (dir == null) {
                        System.err.println("WatchKey not recognized!");
@@ -184,7 +202,6 @@ public class Monitor {
            } catch (InterruptedException e) {
                System.out.println("Error caught in Monitor monitoring: " + e);
            }
-       //}
     }
 
     /**
@@ -192,7 +209,7 @@ public class Monitor {
      *
      * @param theListener the given listener to be added.
      */
-    public void addListener(final ChangeListener<String> theListener) {
+    public void addEventHandler(final ChangeListener<String> theListener) {
         myEvents.addListener(theListener);
     }
 
@@ -201,7 +218,7 @@ public class Monitor {
      *
      * @param theListener the listener to be removed.
      */
-    public void removeListener(final ChangeListener<String> theListener) {
+    public void removeEventHandler(ChangeListener<String> theListener) {
         myEvents.removeListener(theListener);
     }
 }

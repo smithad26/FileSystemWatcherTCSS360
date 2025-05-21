@@ -2,6 +2,7 @@ package Controller;
 
 import Model.Monitor;
 import Model.DataBase;
+import View.MainView;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -22,7 +23,9 @@ public class App extends Application {
     private DataBase database;
 
     public static void main(String[] args) {
-        launch(args);
+
+
+        launch(MainView.class);
     }
 
     /**

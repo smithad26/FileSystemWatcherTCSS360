@@ -2,13 +2,18 @@ package View;
 
 import Model.Monitor;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.DirectoryChooser;
+import javafx.event.EventHandler;
+
 import java.io.File;
 
 public class MainView extends Application {
@@ -18,7 +23,7 @@ public class MainView extends Application {
     private Menu fileMenu, monitorMenu, databaseMenu, helpMenu;
 
     /**
-     * MenuItems
+     * MenuItem for the about section under the Help menu
      */
     private MenuItem myAbout;
 
@@ -183,6 +188,9 @@ public class MainView extends Application {
         layout.setRight(buttonBox);
         layout.setPadding(new Insets(15));
 
+        // Event Handling
+        eventHandling();
+
         //Scene Setup
         Scene scene = new Scene(layout, 700, 800);
         primaryStage.setScene(scene);
@@ -264,10 +272,12 @@ public class MainView extends Application {
     }
 
     /**
-     * Handles events that happen from the model.
+     * Handles events that happen from the model (or anywhere else).
      */
     private void eventHandling() {
 
+        // monitor fires property changes to fileEventArea
+        fileEventArea.textProperty().bind(MONITOR.getEvents());
     }
 }
 
