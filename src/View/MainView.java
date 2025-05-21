@@ -133,6 +133,7 @@ public class MainView extends Application {
         extensionDropdown.setPromptText("Select extension");
         extensionDropdown.setPrefWidth(200);
         extensionDropdown.getItems().addAll(".txt", ".java", ".log", ".md");
+        extensionDropdown.getSelectionModel().select(".txt"); // Set default
 
         VBox extensionBox = new VBox(5, extensionLabel, extensionDropdown);
 
@@ -158,6 +159,7 @@ public class MainView extends Application {
 
         startButton.setPrefWidth(150);
         stopButton.setPrefWidth(150);
+        stopButton.setDisable(true); // App starts in a non-monitoring state
         queryButton.setPrefWidth(150);
 
 
@@ -215,6 +217,10 @@ public class MainView extends Application {
             try {
                 MONITOR.addFile(path);
                 MONITOR.startMonitoring();
+
+                // Disable Start button and enable Stop
+                startButton.setDisable(true);
+                stopButton.setDisable(false);
             } catch (Exception e) {
                 myDirectoryAlert.showAndWait();
             }
@@ -223,6 +229,20 @@ public class MainView extends Application {
         // needs to be fixed
         stopButton.setOnAction(event -> {
             MONITOR.stopMonitoring();
+
+            // Enable Start button and disable Stop
+            startButton.setDisable(false);
+            stopButton.setDisable(true);
+
+            // Add this alert
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Stopped");
+            alert.setHeaderText(null);
+            alert.setContentText("Monitoring has been stopped.");
+            alert.showAndWait();
+
+            fileEventArea.clear();
+
         });
 
         //Added: Query pop up window opens when Query button is clicked
