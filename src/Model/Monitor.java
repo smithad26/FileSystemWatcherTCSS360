@@ -11,6 +11,7 @@ import javafx.beans.value.ChangeListener;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -29,6 +30,11 @@ public class Monitor {
      * Global access point to class (singleton)
      */
     private static final Monitor MONITOR = new Monitor();
+
+    /**
+     * DataBase instance.
+     */
+    private static final DataBase DATABASE = DataBase.getDatabase();
 
     /**
      * Map containing keys of each path to file to be monitored.
@@ -155,53 +161,67 @@ public class Monitor {
      * Monitors for events and fires a property change when an event occurs.
      */
     private void monitoring() {
-           WatchKey key;
-           try {
-               while (myRunning && (key = myWatcher.take()) != null) {
-                   Path dir = myKeys.get(key);
-                   if (dir == null) {
-                       System.err.println("WatchKey not recognized!");
-                       continue;
-                   }
-                   for (WatchEvent<?> event : key.pollEvents()) {
-                       WatchEvent.Kind<?> kind = event.kind();
+        WatchKey key;
+        try {
+            while (myRunning && (key = myWatcher.take()) != null) {
+                Path dir = myKeys.get(key);
+                if (dir == null) {
+                    System.err.println("WatchKey not recognized!");
+                    continue;
+                }
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    WatchEvent.Kind<?> kind = event.kind();
+                    // Context for directory entry event is the file name of
+                    @SuppressWarnings("unchecked")
+                    Path name = ((WatchEvent<Path>) event).context();
+                    Path child = dir.resolve(name);
 
-                       // Context for directory entry event is the file name of
-                       @SuppressWarnings("unchecked")
-                       Path name = ((WatchEvent<Path>) event).context();
-                       Path child = dir.resolve(name);
+                    // fire property change and add to database
+                    // Filename, Event, Timestamp, Extension, Directory
+                    String out = String.format("%s, %s, %s, %s, %s", event.context(),
+                            event.kind().name(), Instant.now(),
+                            getFileExtension(child.toString()), child);
+                    myEvents.set(out);
+                    DATABASE.addEvent(out);
 
-                       // fire property change
-                       String out = String.format("%s: %s\n", event.kind().name(), child);
-                       myEvents.set(out);
-                       System.out.format(out);
+                    // if directory is created, and watching recursively,
+                    // then register it and its sub-directories
+                    if (kind == ENTRY_CREATE) {
+                        try {
+                            if (Files.isDirectory(child)) {
+                                walkThroughDir(child);
+                            }
+                        } catch (IOException x) {
+                            // do something useful
+                            System.out.println("Error processing events: " + x);
+                        }
+                    }
+                }
+                // reset key and remove from set if directory no longer accessible
+                boolean valid = key.reset();
+                if (!valid) {
+                    myKeys.remove(key);
 
-                       // if directory is created, and watching recursively, then register it and its sub-directories
-                       if (kind == ENTRY_CREATE) {
-                           try {
-                               if (Files.isDirectory(child)) {
-                                   walkThroughDir(child);
-                               }
-                           } catch (IOException x) {
-                               // do something useful
-                               System.out.println("Error processing events: " + x);
-                           }
-                       }
-                   }
-                   // reset key and remove from set if directory no longer accessible
-                   boolean valid = key.reset();
-                   if (!valid) {
-                       myKeys.remove(key);
+                    // all directories are inaccessible
+                    if (myKeys.isEmpty()) {
+                        break;
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            System.out.println("Error caught in Monitor monitoring: " + e);
+        }
+    }
 
-                       // all directories are inaccessible
-                       if (myKeys.isEmpty()) {
-                           break;
-                       }
-                   }
-               }
-           } catch (InterruptedException e) {
-               System.out.println("Error caught in Monitor monitoring: " + e);
-           }
+    /**
+     * Helper method to get the file extension.
+     *
+     * @param theFileName the name of the file to get the extension from.
+     * @return the provided file's extension.
+     */
+    private String getFileExtension(final String theFileName) {
+        int dotIndex = theFileName.lastIndexOf('.');
+        return (dotIndex == -1) ? "" : theFileName.substring(dotIndex);
     }
 
     /**
@@ -218,7 +238,7 @@ public class Monitor {
      *
      * @param theListener the listener to be removed.
      */
-    public void removeEventHandler(ChangeListener<String> theListener) {
+    public void removeEventHandler(final ChangeListener<String> theListener) {
         myEvents.removeListener(theListener);
     }
 }

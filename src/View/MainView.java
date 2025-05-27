@@ -1,8 +1,11 @@
 package View;
 
+import Model.DataBase;
 import Model.Monitor;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -35,7 +38,7 @@ public class MainView extends Application {
     private Button browseButton;
 
     // Control buttons (start, stop, query)
-    private Button startButton, stopButton, queryButton;
+    private Button startButton, stopButton, queryButton, myWriteButton;
 
     // Display area for file events
     private TextArea fileEventArea;
@@ -44,6 +47,11 @@ public class MainView extends Application {
      * Access to Monitor class.
      */
     private static final Monitor MONITOR = Monitor.getMonitor();
+
+    /**
+     * Access to DataBase class
+     */
+    private static final DataBase DATABASE = DataBase.getDatabase();
 
     /**
      * Alerts when an invalid directory is encountered.
@@ -157,13 +165,18 @@ public class MainView extends Application {
         queryButton = new Button("Query");
         queryButton.setPadding(new Insets(5, 30, 5, 30));
 
+        myWriteButton = new Button("Write Contents");
+        myWriteButton.setPadding(new Insets(5, 30, 5, 30));
+        myWriteButton.setPrefWidth(150);
+
+
         startButton.setPrefWidth(150);
         stopButton.setPrefWidth(150);
         stopButton.setDisable(true); // App starts in a non-monitoring state
         queryButton.setPrefWidth(150);
 
 
-        VBox buttonBox = new VBox(30, startButton, stopButton, queryButton);
+        VBox buttonBox = new VBox(30, startButton, stopButton, queryButton, myWriteButton);
         buttonBox.setPadding(new Insets(40, 10, 0, 30));
 
         // add listeners to components (functionality)
@@ -203,6 +216,10 @@ public class MainView extends Application {
      * Adds listeners to GUI components to add functionality.
      */
     private void addListeners() {
+
+        myWriteButton.setOnAction(e -> {
+            DATABASE.writeEvents();
+        });
 
         // needs to be fixed
         startButton.setOnAction(event -> {

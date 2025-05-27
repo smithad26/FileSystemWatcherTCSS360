@@ -20,7 +20,7 @@ public class App extends Application {
     private static final Monitor MONITOR = Monitor.getMonitor();
 
     /** Database handler for file event persistence. */
-    private DataBase database;
+    private static final DataBase DATABASE = DataBase.getDatabase();
 
     public static void main(String[] args) {
 
@@ -36,7 +36,6 @@ public class App extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            database = new DataBase();  // Using your custom DataBase class
 
             // Create a basic layout since we cannot rely on MainView.getRoot()
             BorderPane root = new BorderPane();
@@ -61,8 +60,8 @@ public class App extends Application {
         System.out.println("[App] Closing application: stopping monitor and closing database...");
         try {
             MONITOR.stopMonitoring();
-            if (database != null) {
-                database.close();
+            if (DATABASE != null) {
+                DATABASE.close();
                 System.out.println("[App] Database closed.");
             }
         } catch (SQLException e) {
@@ -78,8 +77,8 @@ public class App extends Application {
     public void stop() {
         System.out.println("[App] stop() called - performing final cleanup...");
         try {
-            if (database != null) {
-                database.close();
+            if (DATABASE != null) {
+                DATABASE.close();
                 System.out.println("[App] Database connection closed.");
             }
         } catch (SQLException e) {
