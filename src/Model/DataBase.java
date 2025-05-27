@@ -11,12 +11,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
  * Handles SQLite database operations for file events.
  */
 public class DataBase {
+    /**
+     * Only instance of the DataBase class (singleton)
+     */
+    private static final DataBase DATABASE = new DataBase();
 
     /** SQLite connection string (creates file if not exists). */
     private static final String DB_URL = "jdbc:sqlite:file_watcher.db";
@@ -30,10 +35,17 @@ public class DataBase {
     private final StringProperty myChanges;
 
     /**
+     * List of events to be added to the DataBase.
+     */
+    private final List<String> myEvents;
+
+    /**
      * Constructs the database and sets up the connection.
      */
-    public DataBase() {
+    private DataBase() {
         myChanges = new SimpleStringProperty();
+        myEvents = new LinkedList<>();
+
         try {
             conn = DriverManager.getConnection(DB_URL);
             createTableIfNotExists();
@@ -48,34 +60,51 @@ public class DataBase {
      * @throws SQLException if a SQL error occurs
      */
     private void createTableIfNotExists() throws SQLException {
-        String sql = "CREATE TABLE IF NOT EXISTS file_events (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "file_path TEXT NOT NULL," +
-                "event_type TEXT NOT NULL," +
-                "timestamp TEXT NOT NULL)";
+        String sql = "CREATE TABLE IF NOT EXISTS events (" +
+                "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "Filename TEXT," +
+                "Event TEXT," +
+                "Timestamp TEXT," +
+                "Extension TEXT, " +
+                "Directory TEXT)";
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         }
     }
 
     /**
-     * Writes a list of file events to the database.
-     *
-     * @param events list of events to store
-     * @throws SQLException if writing fails
+     * Writes the Events in myEvents to the database.
      */
-//    public void writeEvents(List<FileEvent> events) throws SQLException {
-//        String sql = "INSERT INTO file_events (file_path, event_type, timestamp) VALUES (?, ?, ?)";
-//        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-//            for (FileEvent event : events) {
-//                pstmt.setString(1, event.getFilePath());
-//                pstmt.setString(2, event.getEventType());
-//                pstmt.setString(3, event.getTimestamp());
-//                pstmt.addBatch();
-//            }
-//            pstmt.executeBatch();
-//        }
-//    }
+    public void writeEvents() {
+        String insertion = "INSERT INTO events(Filename, Event, Timestamp, Extension, Directory) VALUES(?, ?, ?, ?, ?)";
+        try (PreparedStatement statement = conn.prepareStatement(insertion)) {
+            createTableIfNotExists();
+            while (!myEvents.isEmpty()) {
+
+                // Convert String of events into array to get individual elements
+                String[] event = myEvents.removeFirst().split(", ");
+
+                // Set individual elements to the insertion
+                for (int i = 0; i < event.length; i++) {
+                    statement.setString(i + 1, event[i]);
+                }
+
+                // Insert final result
+                statement.execute();
+            }
+        } catch (SQLException e) {
+            System.out.println("Error caught in DataBase: " + e);
+        }
+    }
+
+    /**
+     * Checks if the events have already been written to the DataBase.
+     *
+     * @return if the events list is empty (events have been written).
+     */
+    public boolean isWritten() {
+        return myEvents.isEmpty();
+    }
 
     /**
      * Queries all stored file events from the database.
@@ -101,11 +130,33 @@ public class DataBase {
     }
 
     /**
+     * Getter to get the DataBase instance (singleton).
+     *
+     * @return the only instance of the DataBase class.
+     */
+    public static DataBase getDatabase() {
+        return DATABASE;
+    }
+
+    /**
+     * Adds the given event to the myEvents list.
+     *
+     * @param theEvent to be added.
+     * @throws IllegalArgumentException if the given event is null or empty
+     */
+    public void addEvent(final String theEvent) {
+        if (theEvent.isEmpty()) {
+            throw new IllegalArgumentException("Invalid event to be added");
+        }
+        myEvents.add(theEvent);
+    }
+
+    /**
      * Adds the given listener to the changes field.
      *
      * @param theListener the listener to be added.
      */
-    public void addListener(ChangeListener<String> theListener) {
+    public void addListener(final ChangeListener<String> theListener) {
         myChanges.addListener(theListener);
     }
 }
