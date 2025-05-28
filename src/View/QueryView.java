@@ -8,23 +8,45 @@ import javafx.stage.Stage;
 import javafx.collections.FXCollections;
 import javafx.scene.control.cell.PropertyValueFactory;
 
+/**
+ * QueryView provides a pop-up window for querying stored file events.
+ * Users can filter events by extension, event type, date range, and directory.
+ * The results are displayed in a table, and actions are available to search, export, or email results.
+ *
+ * This class serves as a secondary view in the MVC pattern, invoked by the main GUI.
+ *
+ *
+ */
 public class QueryView {
 
-    // Input fields on the left
-    // These are all the form fields users will fill out before running a query
+    /** TextField for entering the file extension to filter. */
     private TextField extensionField;
+
+    /** Dropdown for selecting the type of file event (CREATE, MODIFY, DELETE). */
     private ComboBox<String> eventTypeDropdown;
+
+    /** DatePicker for selecting the start of the date range. */
     private DatePicker startDatePicker;
+
+    /** DatePicker for selecting the end of the date range. */
     private DatePicker endDatePicker;
+
+    /** TextField for entering or displaying the directory path. */
     private TextField directoryField;
+
+    /** Button to open a directory chooser dialog. */
     private Button browseButton;
 
-    //Buttons on the right (Search, Export, Email)
+    /** Button to execute the search query. */
     private Button searchButton;
+
+    /** Button to export the query results (e.g., to CSV). */
     private Button exportButton;
+
+    /** Button to email the query results. */
     private Button emailButton;
 
-    // Table that displays query results
+    /** TableView to display the query results in tabular form. */
     private TableView<QueryResult> resultTable;
 
     /**
@@ -98,8 +120,11 @@ public class QueryView {
     }
 
     /**
-     * This helper builds a labeled vertical layout: label on top, field underneath.
-     * Makes it easy to reuse across form rows.
+     * Creates a labeled VBox containing a label above the given field.
+     *
+     * @param labelText text for the label
+     * @param field the control to display under the label
+     * @return a VBox with label and field
      */
     private VBox createLabeledField(String labelText, Control field) {
         Label label = new Label(labelText);
@@ -108,8 +133,9 @@ public class QueryView {
     }
 
     /**
-     * Builds and configures the results table.
-     * This table shows the output of the user's search query.
+     * Constructs the TableView and its columns for displaying query results.
+     *
+     * @return configured TableView<QueryResult>
      */
     private TableView<QueryResult> createResultTable() {
         TableView<QueryResult> table = new TableView<>();
@@ -155,7 +181,7 @@ public class QueryView {
     }
 
     /**
-     * This class represents each row in the query result table
+     * Inner class representing a single row in the query results table.
      */
     public static class QueryResult {
         private final String myId;
@@ -164,6 +190,15 @@ public class QueryView {
         private final String myTimestamp;
         private final String myDirectory;
 
+        /**
+         * Constructs a QueryResult with given properties.
+         *
+         * @param theId unique identifier for the event
+         * @param theFilename name of the file
+         * @param theEventType type of event (CREATE, MODIFY, DELETE)
+         * @param theTimestamp event timestamp as a formatted string
+         * @param theDirectory directory where the event occurred
+         */
         public QueryResult(String theId, String theFilename, String theEventType, String theTimestamp, String theDirectory) {
             myId = theId;
             myFilename = theFilename;
@@ -172,10 +207,15 @@ public class QueryView {
             myDirectory = theDirectory;
         }
 
+        /** @return the event ID */
         public String getId() { return myId; }
+        /** @return the filename involved in the event */
         public String getFilename() { return myFilename; }
+        /** @return the type of file event */
         public String getEventType() { return myEventType; }
+        /** @return the timestamp of the event */
         public String getTimestamp() { return myTimestamp; }
+        /** @return the directory path for the event */
         public String getDirectory() { return myDirectory; }
     }
 }
