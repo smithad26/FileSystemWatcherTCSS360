@@ -4,7 +4,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -15,146 +14,144 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Handles SQLite database operations for file events.
+ * Handles saving and retrieving file events in an SQLite database.
+ * This class uses the Singleton design pattern.
  */
 public class DataBase {
-    /**
-     * Only instance of the DataBase class (singleton)
-     */
+    
+    /** The one and only instance of this class. */
     private static final DataBase DATABASE = new DataBase();
 
-    /** SQLite connection string (creates file if not exists). */
+    /** URL for the database file. It will be created if it doesn't exist. */
     private static final String DB_URL = "jdbc:sqlite:file_watcher.db";
 
     /** Connection to the SQLite database. */
-    private Connection conn;
+    private Connection myConnection;
 
-    /**
-     * StringProperty to notify the View when the DataBase has been updated.
-     */
+    /** Used to let the View know when changes happen in the database. */
     private final StringProperty myChanges;
 
-    /**
-     * List of events to be added to the DataBase.
-     */
+    /** List of file events waiting to be saved in the database. */
     private final List<String> myEvents;
 
     /**
-     * Constructs the database and sets up the connection.
+     * Private constructor to prevent outside classes from creating instances.
+     * It connects to the database and creates the table if needed.
      */
     private DataBase() {
         myChanges = new SimpleStringProperty();
         myEvents = new LinkedList<>();
 
         try {
-            conn = DriverManager.getConnection(DB_URL);
+            myConnection = DriverManager.getConnection(DB_URL);
             createTableIfNotExists();
-        } catch (SQLException e) {
-            System.out.println("Error creating database: " + e);
+        } catch (final SQLException e) {
+            System.out.println("Database connection failed: " + e.getMessage());
         }
     }
 
     /**
-     * Creates the events table if it doesn't exist.
+     * Creates the table in the database if it doesn't already exist.
      *
-     * @throws SQLException if a SQL error occurs
+     * @throws SQLException if there's a problem creating the table
      */
     private void createTableIfNotExists() throws SQLException {
-        String sql = "CREATE TABLE IF NOT EXISTS events (" +
-                "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "Filename TEXT," +
-                "Event TEXT," +
-                "Timestamp TEXT," +
-                "Extension TEXT, " +
-                "Directory TEXT)";
-        try (Statement stmt = conn.createStatement()) {
+        final String sql = """
+            CREATE TABLE IF NOT EXISTS events (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Filename TEXT,
+                Event TEXT,
+                Timestamp TEXT,
+                Extension TEXT,
+                Directory TEXT
+            )""";
+
+        try (Statement stmt = myConnection.createStatement()) {
             stmt.execute(sql);
         }
     }
 
     /**
-     * Writes the Events in myEvents to the database.
+     * Saves all file events from the list into the database.
      */
     public void writeEvents() {
-        String insertion = "INSERT INTO events(Filename, Event, Timestamp, Extension, Directory) VALUES(?, ?, ?, ?, ?)";
-        try (PreparedStatement statement = conn.prepareStatement(insertion)) {
+        final String sql = "INSERT INTO events(Filename, Event, Timestamp, Extension, Directory) VALUES(?, ?, ?, ?, ?)";
+
+        try (PreparedStatement statement = myConnection.prepareStatement(sql)) {
             createTableIfNotExists();
+
             while (!myEvents.isEmpty()) {
+                final String[] eventParts = myEvents.removeFirst().split(", ");
 
-                // Convert String of events into array to get individual elements
-                String[] event = myEvents.removeFirst().split(", ");
-
-                // Set individual elements to the insertion
-                for (int i = 0; i < event.length; i++) {
-                    statement.setString(i + 1, event[i]);
+                for (int i = 0; i < eventParts.length; i++) {
+                    statement.setString(i + 1, eventParts[i]);
                 }
 
-                // Insert final result
                 statement.execute();
             }
-        } catch (SQLException e) {
-            System.out.println("Error caught in DataBase: " + e);
+        } catch (final SQLException e) {
+            System.out.println("Failed to write events: " + e.getMessage());
         }
     }
 
     /**
-     * Checks if the events have already been written to the DataBase.
+     * Checks if all events have already been saved.
      *
-     * @return if the events list is empty (events have been written).
+     * @return true if there are no events left to save; false otherwise
      */
     public boolean isWritten() {
         return myEvents.isEmpty();
     }
 
     /**
-     * Queries all stored file events from the database.
+     * Retrieves all events stored in the database.
      *
-     * @return result set of all file events
-     * @throws SQLException if query fails
+     * @return a ResultSet containing all saved file events
+     * @throws SQLException if the query fails
      */
     public ResultSet queryAllEvents() throws SQLException {
-        String sql = "SELECT * FROM file_events ORDER BY timestamp DESC";
-        Statement stmt = conn.createStatement();
+        final String sql = "SELECT * FROM events ORDER BY Timestamp DESC";
+        final Statement stmt = myConnection.createStatement();
         return stmt.executeQuery(sql);
     }
 
     /**
-     * Closes the database connection.
+     * Closes the connection to the database.
      *
-     * @throws SQLException if closing fails
+     * @throws SQLException if closing the connection fails
      */
     public void close() throws SQLException {
-        if (conn != null && !conn.isClosed()) {
-            conn.close();
+        if (myConnection != null && !myConnection.isClosed()) {
+            myConnection.close();
         }
     }
 
     /**
-     * Getter to get the DataBase instance (singleton).
+     * Gets the single instance of the DataBase class.
      *
-     * @return the only instance of the DataBase class.
+     * @return the DataBase instance
      */
     public static DataBase getDatabase() {
         return DATABASE;
     }
 
     /**
-     * Adds the given event to the myEvents list.
+     * Adds a file event to the list for saving later.
      *
-     * @param theEvent to be added.
-     * @throws IllegalArgumentException if the given event is null or empty
+     * @param theEvent the event string (must not be empty)
+     * @throws IllegalArgumentException if the event is empty
      */
     public void addEvent(final String theEvent) {
         if (theEvent.isEmpty()) {
-            throw new IllegalArgumentException("Invalid event to be added");
+            throw new IllegalArgumentException("Event cannot be empty");
         }
         myEvents.add(theEvent);
     }
 
     /**
-     * Adds the given listener to the changes field.
+     * Lets another class listen for changes to the database.
      *
-     * @param theListener the listener to be added.
+     * @param theListener the listener that gets notified on changes
      */
     public void addListener(final ChangeListener<String> theListener) {
         myChanges.addListener(theListener);
