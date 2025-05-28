@@ -4,78 +4,52 @@
 
 package Model;
 
-import com.google.api.client.googleapis.json.GoogleJsonError;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.services.gmail.Gmail;
-import com.google.api.services.gmail.GmailScopes;
+import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.Draft;
-
 import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.*;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import jakarta.mail.*;
+import org.apache.commons.codec.binary.Base64;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
-import org.apache.commons.codec.binary.Base64;
-import com.google.api.services.gmail.model.Message;
-
-
-
-
 /**
- * Handles emailing functionality through Gmail
- *
- * @author Adin Smtih
+ * This class handles sending emails through Gmail using a preset sender account.
+ * It uses JavaMail API to construct and encode email messages.
+ * 
+ * @author 
  * @version 4/28/2025
  */
 public class Email {
 
-    /**
-     * The program's sending email address.
-     */
-    private static final String SENDING = "custom77429@gmail.com";
+    /** The Gmail address used to send all outgoing emails. */
+    private static final String SENDER_EMAIL = "custom77429@gmail.com";
 
-    /**
-     * Generated app password for the program's sending email address
-     * (gmail requires a password).
-     */
-    private static final String PASSWORD = "yrrg jopn xiiq zzhs";
+    /** App-specific password for the Gmail sender account. */
+    private static final String APP_PASSWORD = "yrrg jopn xiiq zzhs";
 
-    /**
-     * The subject for all emails to be sent.
-     */
-    private static final String SUBJECT = "FILE WATCHER UPDATE";
+    /** Default subject for all emails sent by this program. */
+    private static final String DEFAULT_SUBJECT = "FILE WATCHER UPDATE";
 
-    /**
-     * The body text for all emails to be sent.
-     */
-    private static final String BODY = "peepee poopoo hahhaha";
+    /** Default body text for emails (can be customized later). */
+    private static final String DEFAULT_BODY = "peepee poopoo hahhaha";
 
-    /**
-     * Represents the user's email address
-     */
+    /** Stores the recipient's email address. */
     private String myEmail;
 
-    /**
-     * String property for updating view when email is updated.
-     */
-    private StringProperty myProperty;
+    /** Used to notify listeners when the email address changes (e.g., in the GUI). */
+    private final StringProperty myProperty;
 
     /**
-     * Constructor for creating an Email object.
+     * Constructs an Email object and sets the initial email address.
      *
-     * @param theEmail the user's email address.
+     * @param theEmail the initial recipient email address
+     * @throws IllegalArgumentException if the provided email is empty
      */
     public Email(final String theEmail) {
         myProperty = new SimpleStringProperty();
@@ -83,95 +57,93 @@ public class Email {
     }
 
     /**
-     * Changes the current email address to the new one.
+     * Changes the recipient email address and updates the view property.
      *
-     * @param theNewEmail the new email to be changed to.
+     * @param theNewEmail the new email address to use
+     * @throws IllegalArgumentException if the email is empty
      */
     public void changeEmail(final String theNewEmail) {
         if (theNewEmail.isEmpty()) {
-            throw new IllegalArgumentException("Email is empty!");
+            throw new IllegalArgumentException("Email cannot be empty!");
         }
         myEmail = theNewEmail;
         myProperty.set(myEmail);
     }
 
     /**
-     * Sends an email with the given message and file
+     * Sends an email to the current recipient. Includes an optional file attachment.
      *
-     * @param theMessage the message to be sent.
-     * @param theFile the file to be sent.
+     * @param theMessage the message content (currently unused)
+     * @param theFile the file to attach (currently unused)
      */
     public void sendEmail(final String theMessage, final File theFile) {
         try {
+            // Create the email message
+            final MimeMessage email = createEmail(myEmail);
 
-            // Create email
-            MimeMessage email = createEmail(myEmail);
+            // Convert the email into a base64url-encoded Gmail message
+            final Message message = createMessageWithEmail(email);
 
-            // Encode email
-            Message message = createMessageWithEmail(email);
+            // TODO: Send the message using Gmail API (not yet implemented)
 
-            //
-
-        } catch (MessagingException | IOException e) {
-            System.out.println("Error caught while sending email: " + e);
+        } catch (final MessagingException | IOException e) {
+            System.out.println("Error while sending email: " + e.getMessage());
         }
     }
 
     /**
-     * Create a MimeMessage using the parameters provided.
+     * Creates a basic email message with a subject and body text.
      *
-     * @param theReceivingAddress email address of the receiver
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @return the MimeMessage to be used to send email
+     * @param theReceivingAddress the recipient email address
+     * @return the constructed MimeMessage
+     * @throws MessagingException if the email address is invalid or creation fails
      */
     private static MimeMessage createEmail(final String theReceivingAddress)
             throws MessagingException {
-        Properties props = new Properties();
-        Session session = Session.getDefaultInstance(props, null);
+        final Properties props = new Properties();
+        final Session session = Session.getDefaultInstance(props, null);
+        final MimeMessage email = new MimeMessage(session);
 
-        MimeMessage email = new MimeMessage(session);
-
-        email.setFrom(new InternetAddress(SENDING));
-        email.addRecipient(jakarta.mail.Message.RecipientType.TO,
-                new InternetAddress(theReceivingAddress));
-        email.setSubject(SUBJECT);
-        email.setText(BODY);
+        email.setFrom(new InternetAddress(SENDER_EMAIL));
+        email.addRecipient(Message.RecipientType.TO, new InternetAddress(theReceivingAddress));
+        email.setSubject(DEFAULT_SUBJECT);
+        email.setText(DEFAULT_BODY);
 
         return email;
     }
 
     /**
-     * Encodes the MimeMessage and returns a message to be sent.
+     * Converts a MimeMessage into a Gmail-compatible Message by encoding it.
      *
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return the new base64url encoded message.
+     * @param theMessage the MimeMessage to encode
+     * @return the encoded Gmail message
+     * @throws MessagingException if message formatting fails
+     * @throws IOException if output stream fails
      */
     private static Message createMessageWithEmail(final MimeMessage theMessage)
             throws MessagingException, IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         theMessage.writeTo(buffer);
-        byte[] bytes = buffer.toByteArray();
-        String encodedEmail = Base64.encodeBase64URLSafeString(bytes);
-        Message message = new Message();
+        final byte[] bytes = buffer.toByteArray();
+        final String encodedEmail = Base64.encodeBase64URLSafeString(bytes);
+
+        final Message message = new Message();
         message.setRaw(encodedEmail);
         return message;
     }
 
     /**
-     * Creates a draft message with the attached file.
+     * Creates a Gmail draft message with an attached file.
      *
-     * @param theFile the file to be attached.
-     * @param theMessage the encoded message.
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return a draft message.
+     * @param theFile the file to attach (currently unused)
+     * @param theMessage the encoded Gmail message
+     * @return a new draft (currently a placeholder)
+     * @throws MessagingException if message creation fails
+     * @throws IOException if file processing fails
      */
     private static Draft createDraftMessage(final File theFile, final Message theMessage)
             throws MessagingException, IOException {
-
+        // TODO: Add attachment and return a proper draft
         return new Draft();
     }
-
-
 }
