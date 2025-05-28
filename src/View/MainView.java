@@ -18,6 +18,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.event.EventHandler;
 
 import java.io.File;
+import java.nio.file.Path;
 
 public class MainView extends Application {
 
@@ -182,6 +183,20 @@ public class MainView extends Application {
         // add listeners to components (functionality)
         addListeners();
 
+        browseButton.setOnAction(e -> {
+            DirectoryChooser dir = new DirectoryChooser();
+            File chosen = dir.showDialog(primaryStage);
+
+            String path = chosen.getPath();
+            try {
+                MONITOR.addFile(path);
+                directoryField.setText(path);
+            } catch (Exception i) {
+                myDirectoryAlert.showAndWait();
+            }
+
+        });
+
         //File Event Area
         Label fileEventLabel = new Label("File Event:");
         fileEventLabel.setPadding(new Insets(20, 0, 0, 0));
@@ -305,7 +320,6 @@ public class MainView extends Application {
                    \s""");
             alert.showAndWait();
         });
-
     }
 
     /**

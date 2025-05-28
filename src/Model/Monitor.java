@@ -14,6 +14,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.nio.file.StandardWatchEventKinds.*;
 
@@ -62,6 +63,11 @@ public class Monitor {
     private volatile boolean myRunning;
 
     /**
+     * Represents the current file extension to monitor
+     */
+    private String myExtension;
+
+    /**
      * Constructor for Monitor object
      */
     private Monitor() {
@@ -74,6 +80,7 @@ public class Monitor {
             System.out.println("Error caught in Monitor constructor: " + e);
         }
         myRunning = false;
+        myExtension = "none";
     }
 
     /**
@@ -94,9 +101,10 @@ public class Monitor {
      * registers the given path to the myKeys map.
      *
      * @param theDir the given path to register.
-     * @throws IOException
+     * @throws IOException if exception occurs
      */
     private void registerDirectory(final Path theDir) throws IOException {
+
         WatchKey watchkey = theDir.register(myWatcher,
                 ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
         myKeys.put(watchkey, theDir);
@@ -106,7 +114,7 @@ public class Monitor {
      * Recursively adds and registers all files and subdirectories to the myKeys map.
      *
      * @param theStart the starting path to walk through.
-     * @throws IOException if
+     * @throws IOException if exception occurs
      */
     private void walkThroughDir(final Path theStart) throws IOException {
         // register directory and sub-directories
@@ -176,11 +184,22 @@ public class Monitor {
                     Path name = ((WatchEvent<Path>) event).context();
                     Path child = dir.resolve(name);
 
+                    // Check if the file matches the monitoring extension
+                    // and skip if necessary
+                    String extension = getFileExtension(child.toString());
+                    if (!extension.equalsIgnoreCase(myExtension) &&
+                            !myExtension.equalsIgnoreCase("none")) {
+                        continue;
+                    }
+
                     // fire property change and add to database
                     // Filename, Event, Timestamp, Extension, Directory
-                    String out = String.format("%s, %s, %s, %s, %s", event.context(),
-                            event.kind().name(), Instant.now(),
-                            getFileExtension(child.toString()), child);
+                    String out = String.format("%s, %s, %s, %s, %s",
+                            event.context(),
+                            event.kind().name(),
+                            Instant.now(),
+                            extension,
+                            child);
                     myEvents.set(out);
                     DATABASE.addEvent(out);
 
@@ -222,6 +241,18 @@ public class Monitor {
     private String getFileExtension(final String theFileName) {
         int dotIndex = theFileName.lastIndexOf('.');
         return (dotIndex == -1) ? "" : theFileName.substring(dotIndex);
+    }
+
+    /**
+     * Changes the file extension to monitor.
+     *
+     * @param theExtension the new file extension to monitor.
+     * @throws NullPointerException if the given extension is null.
+     */
+    public void changeExtension(final String theExtension) {
+        Objects.requireNonNull(theExtension);
+
+        myExtension = theExtension;
     }
 
     /**
