@@ -7,6 +7,8 @@ package Model;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -43,9 +45,9 @@ public class Monitor {
     private final Map<WatchKey, Path> myKeys;
 
     /**
-     * StringProperty for updating the view with events
+     * ObservableList for updating the view with events
      */
-    private final StringProperty myEvents;
+    private final ObservableList<Event> myEvents;
 
     /**
      * Watch service field
@@ -72,7 +74,7 @@ public class Monitor {
      */
     private Monitor() {
         myKeys = new Hashtable<>();
-        myEvents = new SimpleStringProperty();
+        myEvents = FXCollections.observableArrayList();
         myWatcher = null;
         try {
             myWatcher = FileSystems.getDefault().newWatchService();
@@ -157,15 +159,6 @@ public class Monitor {
     }
 
     /**
-     * Getter for myEvents for binding the MianView in the controller
-     *
-     * @return the events StringProperty
-     */
-    public StringProperty getEvents() {
-        return myEvents;
-    }
-
-    /**
      * Monitors for events and fires a property change when an event occurs.
      */
     private void monitoring() {
@@ -194,13 +187,14 @@ public class Monitor {
 
                     // fire property change and add to database
                     // Filename, Event, Timestamp, Extension, Directory
-                    String out = String.format("%s, %s, %s, %s, %s",
-                            event.context(),
+                    Event out = new Event(
+                            event.context().toString(),
                             event.kind().name(),
-                            Instant.now(),
+                            Instant.now().toString(),
                             extension,
-                            child);
-                    myEvents.set(out);
+                            child.toString());
+
+                    myEvents.add(out);
                     DATABASE.addEvent(out);
 
                     // if directory is created, and watching recursively,
@@ -256,20 +250,12 @@ public class Monitor {
     }
 
     /**
-     * Adds the given listener to the events field.
+     * Returns the ObservableList to be bound to the MainView
      *
-     * @param theListener the given listener to be added.
+     * return the myEvents ObservableList
      */
-    public void addEventHandler(final ChangeListener<String> theListener) {
-        myEvents.addListener(theListener);
+    public ObservableList<Event> getEvents() {
+        return myEvents;
     }
 
-    /**
-     * Removes the given listener from the vents field.
-     *
-     * @param theListener the listener to be removed.
-     */
-    public void removeEventHandler(final ChangeListener<String> theListener) {
-        myEvents.removeListener(theListener);
-    }
 }

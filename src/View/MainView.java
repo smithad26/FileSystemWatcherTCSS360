@@ -1,11 +1,14 @@
 package View;
 
 import Model.DataBase;
+import Model.Event;
 import Model.Monitor;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -42,7 +45,9 @@ public class MainView extends Application {
     private Button startButton, stopButton, queryButton, myWriteButton;
 
     // Display area for file events
-    private TextArea fileEventArea;
+    //private TextArea fileEventArea;
+
+    private TableView<Event> myEventArea;
 
     /**
      * Access to Monitor class.
@@ -187,27 +192,31 @@ public class MainView extends Application {
             DirectoryChooser dir = new DirectoryChooser();
             File chosen = dir.showDialog(primaryStage);
 
-            String path = chosen.getPath();
             try {
+                String path = chosen.getPath();
                 MONITOR.addFile(path);
                 directoryField.setText(path);
-            } catch (Exception i) {
-                myDirectoryAlert.showAndWait();
-            }
+            } catch (Exception _) {}    // If user cancels the dialog box
 
         });
 
         //File Event Area
         Label fileEventLabel = new Label("File Event:");
         fileEventLabel.setPadding(new Insets(20, 0, 0, 0));
-        fileEventArea = new TextArea();
-        fileEventArea.setEditable(false);
-        fileEventArea.setPrefHeight(300);
-        fileEventArea.setMaxWidth(Double.MAX_VALUE);
-        VBox.setVgrow(fileEventArea, Priority.ALWAYS);
+//        fileEventArea = new TextArea();
+//        fileEventArea.setEditable(false);
+//        fileEventArea.setPrefHeight(300);
+//        fileEventArea.setMaxWidth(Double.MAX_VALUE);
+
+        myEventArea = TableBuilder.createResultTable();
 
 
-        VBox centerContent = new VBox(20, leftControls, fileEventLabel, fileEventArea);
+
+//        VBox.setVgrow(fileEventArea, Priority.ALWAYS);
+        VBox.setVgrow(myEventArea, Priority.ALWAYS);
+
+
+        VBox centerContent = new VBox(20, leftControls, fileEventLabel, myEventArea);
         centerContent.setPadding(new Insets(40, 0, 0, 0));
 
 
@@ -248,6 +257,7 @@ public class MainView extends Application {
 
             try {
                 MONITOR.addFile(path);
+                //MONITOR.changeExtension(extension);
                 MONITOR.startMonitoring();
 
                 // Disable Start button and enable Stop
@@ -273,7 +283,6 @@ public class MainView extends Application {
             alert.setContentText("Monitoring has been stopped.");
             alert.showAndWait();
 
-            fileEventArea.clear();
 
         });
 
@@ -328,7 +337,11 @@ public class MainView extends Application {
     private void eventHandling() {
 
         // monitor fires property changes to fileEventArea
-        fileEventArea.textProperty().bind(MONITOR.getEvents());
+//        MONITOR.addEventHandler((obs, oldVal, newVal) -> {
+//            fileEventArea.appendText(newVal);
+//        });
+
+        myEventArea.setItems(MONITOR.getEvents());
     }
 }
 
