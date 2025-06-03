@@ -1,59 +1,62 @@
 package View;
 
+import Model.Event;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.collections.FXCollections;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-/**
- * QueryView provides a pop-up window for querying stored file events.
- * Users can filter events by extension, event type, date range, and directory.
- * The results are displayed in a table, and actions are available to search, export, or email results.
- *
- * This class serves as a secondary view in the MVC pattern, invoked by the main GUI.
- *
- *
- */
+import Model.DataBase;
+
+import java.io.File;
+
 public class QueryView {
 
-    /** TextField for entering the file extension to filter. */
+    /**
+     * DataBase constant to access the DataBase
+     */
+    private static final DataBase DATABASE = DataBase.getDatabase();
+
+    // Input fields on the left
+    // These are all the form fields users will fill out before running a query
     private TextField extensionField;
-
-    /** Dropdown for selecting the type of file event (CREATE, MODIFY, DELETE). */
     private ComboBox<String> eventTypeDropdown;
-
-    /** DatePicker for selecting the start of the date range. */
     private DatePicker startDatePicker;
-
-    /** DatePicker for selecting the end of the date range. */
     private DatePicker endDatePicker;
-
-    /** TextField for entering or displaying the directory path. */
     private TextField directoryField;
-
-    /** Button to open a directory chooser dialog. */
     private Button browseButton;
 
-    /** Button to execute the search query. */
+    //Buttons on the right (Search, Export, Email)
     private Button searchButton;
-
-    /** Button to export the query results (e.g., to CSV). */
     private Button exportButton;
-
-    /** Button to email the query results. */
     private Button emailButton;
 
-    /** TableView to display the query results in tabular form. */
-    private TableView<QueryResult> resultTable;
+    // Table that displays query results
+    private TableView<Event> resultTable;
+
+    /**
+     * String fields representing partial SQL statements to be queried later
+     */
+    private String myExtensionSQL, myDirectorySQL, myStartSQL, myEndSQL, myEventSQL;
 
     /**
      * This method shows the popup window for querying file event data.
      * It's triggered when the Query button in the main view is clicked.
      */
     public void display() {
+        // Initialize partial SQL statements as empty
+        myExtensionSQL = "";
+        myDirectorySQL = "";
+        myStartSQL = "";
+        myEndSQL = "";
+        myEventSQL = "";
+
         Stage queryStage = new Stage();
         queryStage.setTitle("Query Form");
         queryStage.setResizable(false); // user shouldn't resize this window
@@ -62,6 +65,8 @@ public class QueryView {
         extensionField = new TextField();
         eventTypeDropdown = new ComboBox<>();
         eventTypeDropdown.setPromptText("Select event type");
+
+        
 
         // Wrap both inputs with their labels into a row
         HBox extensionRow = new HBox(20,
@@ -102,7 +107,7 @@ public class QueryView {
 
         //Query Results Table
         Label resultsLabel = new Label("Query Results:");
-        resultTable = createResultTable(); // defined below
+        resultTable = TableBuilder.createResultTable(); // defined below
 
         //Organize everything on the left: input fields + results table
         VBox leftForm = new VBox(20, extensionRow, dateRow, directorySection, resultsLabel, resultTable);
@@ -117,14 +122,53 @@ public class QueryView {
         Scene scene = new Scene(mainLayout, 850, 600); // size of the popup window
         queryStage.setScene(scene);
         queryStage.show();
+
+        // Add listeners
+        addListeners();
+
+        // Export button needs access to queryStage
+        exportButton.setOnAction(e -> {
+            // Allow user to choose where to save csv file
+            FileChooser fc = new FileChooser();
+            FileChooser.ExtensionFilter filter = new FileChooser.ExtensionFilter("CSV files (*.csv)", "*.csv");
+            fc.getExtensionFilters().add(filter);
+            File file = fc.showSaveDialog(queryStage);
+
+            // Get path from user and export
+            try {
+                DATABASE.export(file.getPath());
+            } catch (NullPointerException _) {}     // If user cancels the dialog box
+        });
+
+        // Browse button needs access to queryStage
+        browseButton.setOnAction(e -> {
+            DirectoryChooser dir = new DirectoryChooser();
+            File chosen = dir.showDialog(queryStage);
+
+            try {
+                String path = chosen.getPath();
+                myDirectorySQL = "Directory LIKE '" + path + "'";
+                directoryField.setText(path);
+            } catch (Exception _) {}    // If user cancels the dialog box
+        });
     }
 
     /**
-     * Creates a labeled VBox containing a label above the given field.
-     *
-     * @param labelText text for the label
-     * @param field the control to display under the label
-     * @return a VBox with label and field
+     * Adds listeners to buttons/elements
+     */
+    private void addListeners() {
+        searchButton.setOnAction(e -> {
+            DATABASE.search(myDirectorySQL, myStartSQL, myEndSQL, myEventSQL, myExtensionSQL);
+        });
+
+        // bind textfield
+        resultTable.setItems(DATABASE.getQuery());
+
+    }
+
+    /**
+     * This helper builds a labeled vertical layout: label on top, field underneath.
+     * Makes it easy to reuse across form rows.
      */
     private VBox createLabeledField(String labelText, Control field) {
         Label label = new Label(labelText);
@@ -132,91 +176,5 @@ public class QueryView {
         return box;
     }
 
-    /**
-     * Constructs the TableView and its columns for displaying query results.
-     *
-     * @return configured TableView<QueryResult>
-     */
-    private TableView<QueryResult> createResultTable() {
-        TableView<QueryResult> table = new TableView<>();
-        table.setEditable(false); // users can't edit any cells
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); // fills the available width
-        table.setMaxWidth(Double.MAX_VALUE); // lets it stretch fully
-
-        //Define all 5 columns
-        TableColumn<QueryResult, String> idCol = new TableColumn<>("ID");
-        idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
-        idCol.setPrefWidth(50);
-        idCol.setResizable(false);
-
-        TableColumn<QueryResult, String> nameCol = new TableColumn<>("Filename");
-        nameCol.setCellValueFactory(new PropertyValueFactory<>("filename"));
-        nameCol.setPrefWidth(150);
-        nameCol.setResizable(false);
-
-        TableColumn<QueryResult, String> typeCol = new TableColumn<>("Event Type");
-        typeCol.setCellValueFactory(new PropertyValueFactory<>("eventType"));
-        typeCol.setPrefWidth(80);
-        typeCol.setResizable(false);
-
-        TableColumn<QueryResult, String> timeCol = new TableColumn<>("Timestamp");
-        timeCol.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
-        timeCol.setPrefWidth(100);
-        timeCol.setResizable(false);
-
-        TableColumn<QueryResult, String> dirCol = new TableColumn<>("Directory");
-        dirCol.setCellValueFactory(new PropertyValueFactory<>("directory"));
-        dirCol.setPrefWidth(240);
-        dirCol.setResizable(false);
-
-        // Add all columns to the table
-        table.getColumns().addAll(idCol, nameCol, typeCol, timeCol, dirCol);
-
-        // don't let users drag column headers around
-        table.getColumns().forEach(col -> col.setReorderable(false));
-
-
-        table.setPrefHeight(300);
-        return table;
-    }
-
-    /**
-     * Inner class representing a single row in the query results table.
-     */
-    public static class QueryResult {
-        private final String myId;
-        private final String myFilename;
-        private final String myEventType;
-        private final String myTimestamp;
-        private final String myDirectory;
-
-        /**
-         * Constructs a QueryResult with given properties.
-         *
-         * @param theId unique identifier for the event
-         * @param theFilename name of the file
-         * @param theEventType type of event (CREATE, MODIFY, DELETE)
-         * @param theTimestamp event timestamp as a formatted string
-         * @param theDirectory directory where the event occurred
-         */
-        public QueryResult(String theId, String theFilename, String theEventType, String theTimestamp, String theDirectory) {
-            myId = theId;
-            myFilename = theFilename;
-            myEventType = theEventType;
-            myTimestamp = theTimestamp;
-            myDirectory = theDirectory;
-        }
-
-        /** @return the event ID */
-        public String getId() { return myId; }
-        /** @return the filename involved in the event */
-        public String getFilename() { return myFilename; }
-        /** @return the type of file event */
-        public String getEventType() { return myEventType; }
-        /** @return the timestamp of the event */
-        public String getTimestamp() { return myTimestamp; }
-        /** @return the directory path for the event */
-        public String getDirectory() { return myDirectory; }
-    }
 }
 

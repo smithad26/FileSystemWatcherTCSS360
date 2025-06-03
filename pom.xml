@@ -99,6 +99,13 @@
             <version>5.9.1</version>
         </dependency>
 
+        <!-- Dependency for OpenCSV -->
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>5.9</version>
+        </dependency>
+
     </dependencies>
 
     <build>
