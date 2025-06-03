@@ -176,5 +176,31 @@ public class QueryView {
         return box;
     }
 
+    private void emailCSV(String recipient) {
+        if (recipient.isEmpty()) {
+            showAlert("Error", "Please enter a recipient email address.");
+            return;
+        }
+
+        // If no CSV has been saved, prompt to save one
+        if (lastSavedCsv == null || !lastSavedCsv.exists()) {
+            showAlert("Warning", "No CSV file has been saved. Please save the query results to a CSV first.");
+            saveToCSV();
+            if (lastSavedCsv == null || !lastSavedCsv.exists()) {
+                return; // User canceled or failed to save
+            }
+        }
+
+        try {
+            Email email = new Email(recipient);
+            email.sendEmail("Attached is the query results CSV file from the File Watcher application.", lastSavedCsv);
+            showAlert("Success", "Email sent successfully to " + recipient);
+        } catch (MessagingException e) {
+            showAlert("Error", "Failed to send email: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            showAlert("Error", "Invalid email address or file: " + e.getMessage());
+        }
+    }
+
 }
 
