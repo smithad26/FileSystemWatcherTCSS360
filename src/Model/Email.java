@@ -30,14 +30,11 @@ import java.util.Properties;
 import org.apache.commons.codec.binary.Base64;
 import com.google.api.services.gmail.model.Message;
 
-
-
-
 /**
- * Handles emailing functionality through Gmail
+ * Handles emailing functionality through Gmail, sending a CSV file as an attachment.
  *
- * @author Adin Smtih
- * @version 4/28/2025
+ * @author Marcus Nguyen
+ * @version 6/3/2025
  */
 public class Email {
 
@@ -48,19 +45,19 @@ public class Email {
 
     /**
      * Generated app password for the program's sending email address
-     * (gmail requires a password).
+     * (Gmail requires a password).
      */
     private static final String PASSWORD = "yrrg jopn xiiq zzhs";
 
     /**
      * The subject for all emails to be sent.
      */
-    private static final String SUBJECT = "FILE WATCHER UPDATE";
+    private static final String SUBJECT = "File Watcher Query Results";
 
     /**
-     * The body text for all emails to be sent.
+     * The default body text for all emails to be sent.
      */
-    private static final String BODY = "peepee poopoo hahhaha";
+    private static final String BODY = "Attached is the query results CSV file from the File Watcher application.";
 
     /**
      * Represents the user's email address
@@ -70,7 +67,7 @@ public class Email {
     /**
      * String property for updating view when email is updated.
      */
-    private StringProperty myProperty;
+    private final StringProperty myProperty;
 
     /**
      * Constructor for creating an Email object.
@@ -86,92 +83,87 @@ public class Email {
      * Changes the current email address to the new one.
      *
      * @param theNewEmail the new email to be changed to.
+     * @throws IllegalArgumentException if the email is empty
      */
     public void changeEmail(final String theNewEmail) {
-        if (theNewEmail.isEmpty()) {
+        if (theNewEmail == null || theNewEmail.trim().isEmpty()) {
             throw new IllegalArgumentException("Email is empty!");
         }
-        myEmail = theNewEmail;
+        myEmail = theNewEmail.trim();
         myProperty.set(myEmail);
     }
 
     /**
-     * Sends an email with the given message and file
+     * Gets the current email address.
      *
-     * @param theMessage the message to be sent.
-     * @param theFile the file to be sent.
+     * @return the recipient's email address
      */
-    public void sendEmail(final String theMessage, final File theFile) {
-        try {
+    public String getEmail() {
+        return myEmail;
+    }
 
-            // Create email
-            MimeMessage email = createEmail(myEmail);
+    /**
+     * Gets the email property for binding to the view.
+     *
+     * @return the email string property
+     */
+    public StringProperty emailProperty() {
+        return myProperty;
+    }
 
-            // Encode email
-            Message message = createMessageWithEmail(email);
-
-            //
-
-        } catch (MessagingException | IOException e) {
-            System.out.println("Error caught while sending email: " + e);
+    /**
+     * Sends an email with the specified message and file as an attachment.
+     *
+     * @param theMessage the message to be sent, or null to use default BODY
+     * @param theFile the file to be sent, or null for no attachment
+     * @throws MessagingException if email sending fails
+     */
+    public void sendEmail(final String theMessage, final File theFile) throws MessagingException {
+        if (theFile != null && !theFile.exists()) {
+            throw new IllegalArgumentException("CSV file does not exist");
         }
-    }
 
-    /**
-     * Create a MimeMessage using the parameters provided.
-     *
-     * @param theReceivingAddress email address of the receiver
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @return the MimeMessage to be used to send email
-     */
-    private static MimeMessage createEmail(final String theReceivingAddress)
-            throws MessagingException {
+        // Set up mail server properties
         Properties props = new Properties();
-        Session session = Session.getDefaultInstance(props, null);
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
 
-        MimeMessage email = new MimeMessage(session);
+        // Create a session with authentication
+        Session session = Session.getInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(SENDING, PASSWORD);
+            }
+        });
 
-        email.setFrom(new InternetAddress(SENDING));
-        email.addRecipient(jakarta.mail.Message.RecipientType.TO,
-                new InternetAddress(theReceivingAddress));
-        email.setSubject(SUBJECT);
-        email.setText(BODY);
+        // Create the email message
+        Message message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(SENDING));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(myEmail));
+        message.setSubject(SUBJECT);
 
-        return email;
+        // Create the message part
+        MimeBodyPart textPart = new MimeBodyPart();
+        textPart.setText(theMessage != null ? theMessage : BODY);
+
+        // Create a multipart message
+        Multipart multipart = new MimeMultipart();
+        multipart.addBodyPart(textPart);
+
+        // Add attachment if provided
+        if (theFile != null) {
+            MimeBodyPart attachmentPart = new MimeBodyPart();
+            attachmentPart.attachFile(theFile);
+            multipart.addBodyPart(attachmentPart);
+        }
+
+        message.setContent(multipart);
+
+        // Send the email
+        Transport.send(message);
     }
-
-    /**
-     * Encodes the MimeMessage and returns a message to be sent.
-     *
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return the new base64url encoded message.
-     */
-    private static Message createMessageWithEmail(final MimeMessage theMessage)
-            throws MessagingException, IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        theMessage.writeTo(buffer);
-        byte[] bytes = buffer.toByteArray();
-        String encodedEmail = Base64.encodeBase64URLSafeString(bytes);
-        Message message = new Message();
-        message.setRaw(encodedEmail);
-        return message;
-    }
-
-    /**
-     * Creates a draft message with the attached file.
-     *
-     * @param theFile the file to be attached.
-     * @param theMessage the encoded message.
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return a draft message.
-     */
-    private static Draft createDraftMessage(final File theFile, final Message theMessage)
-            throws MessagingException, IOException {
-
-        return new Draft();
-    }
-
+    session.setDebug(true);
 
 }
