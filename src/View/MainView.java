@@ -1,14 +1,11 @@
 package View;
 
 import Model.DataBase;
-import Model.Event;
 import Model.Monitor;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -23,48 +20,62 @@ import javafx.event.EventHandler;
 import java.io.File;
 import java.nio.file.Path;
 
+/**
+ * MainView is the JavaFX-based graphical user interface for the File System Watcher application.
+ * It allows users to:
+ *
+ *   Select a directory to monitor
+ *   Choose file extensions for filtering events
+ *   Start and stop the file monitoring process
+ *   Write monitoring events to a database
+ *   Query recorded events
+ *   View real-time file system events in a text area
+ *   Access an About dialog with usage information
+ *
+ * <p>This class binds to the {@link Monitor} and {@link DataBase} models
+ * and serves as the View component in an MVC architecture.</p>
+ *
+ *
+ */
+
 public class MainView extends Application {
 
-    // Menu bar and its menus
+    /** The main menu bar displayed at the top of the window. */
     private MenuBar menuBar;
+    /** Menus for grouping related actions. */
     private Menu fileMenu, monitorMenu, databaseMenu, helpMenu;
 
-    /**
-     * MenuItem for the about section under the Help menu
-     */
+    /** MenuItem under Help for showing application information. */
     private MenuItem myAbout;
 
-    // Dropdown for selecting file extension to monitor
+    /** Dropdown for selecting which file extension to monitor. */
     private ComboBox<String> extensionDropdown;
 
-    // Directory path field and browse button
+    /** TextField for directory path input and display. */
     private TextField directoryField;
+    /** Button for opening a directory chooser. */
     private Button browseButton;
 
-    // Control buttons (start, stop, query)
+    /** Control buttons for starting, stopping, querying, and writing events. */
     private Button startButton, stopButton, queryButton, myWriteButton;
 
-    // Display area for file events
-    //private TextArea fileEventArea;
+    /** TextArea to display file system events as they occur. */
+    private TextArea fileEventArea;
 
-    private TableView<Event> myEventArea;
-
-    /**
-     * Access to Monitor class.
-     */
+    /** Singleton instance of the Monitor model. */
     private static final Monitor MONITOR = Monitor.getMonitor();
-
-    /**
-     * Access to DataBase class
-     */
+    /** Singleton instance of the DataBase model. */
     private static final DataBase DATABASE = DataBase.getDatabase();
 
-    /**
-     * Alerts when an invalid directory is encountered.
-     */
+    /** Alert dialog shown when the user inputs an invalid directory. */
     private Alert myDirectoryAlert;
 
-
+    /**
+     * Initializes and displays the main application window.
+     * Sets up menus, controls, layout, and binds model events to the view.
+     *
+     * @param primaryStage the primary Stage for this JavaFX application
+     */
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("File System Watcher");
@@ -192,31 +203,27 @@ public class MainView extends Application {
             DirectoryChooser dir = new DirectoryChooser();
             File chosen = dir.showDialog(primaryStage);
 
+            String path = chosen.getPath();
             try {
-                String path = chosen.getPath();
                 MONITOR.addFile(path);
                 directoryField.setText(path);
-            } catch (Exception _) {}    // If user cancels the dialog box
+            } catch (Exception i) {
+                myDirectoryAlert.showAndWait();
+            }
 
         });
 
         //File Event Area
         Label fileEventLabel = new Label("File Event:");
         fileEventLabel.setPadding(new Insets(20, 0, 0, 0));
-//        fileEventArea = new TextArea();
-//        fileEventArea.setEditable(false);
-//        fileEventArea.setPrefHeight(300);
-//        fileEventArea.setMaxWidth(Double.MAX_VALUE);
-
-        myEventArea = TableBuilder.createResultTable();
-
+        fileEventArea = new TextArea();
+        fileEventArea.setEditable(false);
+        fileEventArea.setPrefHeight(300);
+        fileEventArea.setMaxWidth(Double.MAX_VALUE);
+        VBox.setVgrow(fileEventArea, Priority.ALWAYS);
 
 
-//        VBox.setVgrow(fileEventArea, Priority.ALWAYS);
-        VBox.setVgrow(myEventArea, Priority.ALWAYS);
-
-
-        VBox centerContent = new VBox(20, leftControls, fileEventLabel, myEventArea);
+        VBox centerContent = new VBox(20, leftControls, fileEventLabel, fileEventArea);
         centerContent.setPadding(new Insets(40, 0, 0, 0));
 
 
@@ -237,7 +244,8 @@ public class MainView extends Application {
     }
 
     /**
-     * Adds listeners to GUI components to add functionality.
+     * Registers event handlers for the Start, Stop, Query, Write, Browse, and About actions.
+     * Handles user input validation and delegates to Monitor and DataBase.
      */
     private void addListeners() {
 
@@ -257,7 +265,6 @@ public class MainView extends Application {
 
             try {
                 MONITOR.addFile(path);
-                //MONITOR.changeExtension(extension);
                 MONITOR.startMonitoring();
 
                 // Disable Start button and enable Stop
@@ -283,6 +290,7 @@ public class MainView extends Application {
             alert.setContentText("Monitoring has been stopped.");
             alert.showAndWait();
 
+            fileEventArea.clear();
 
         });
 
@@ -332,16 +340,12 @@ public class MainView extends Application {
     }
 
     /**
-     * Handles events that happen from the model (or anywhere else).
+     * Binds the Monitor's event StringProperty to the fileEventArea so UI updates reflect model events.
      */
     private void eventHandling() {
 
         // monitor fires property changes to fileEventArea
-//        MONITOR.addEventHandler((obs, oldVal, newVal) -> {
-//            fileEventArea.appendText(newVal);
-//        });
-
-        myEventArea.setItems(MONITOR.getEvents());
+        fileEventArea.textProperty().bind(MONITOR.getEvents());
     }
 }
 
