@@ -1,6 +1,7 @@
 package View;
 
 import Model.DataBase;
+import Model.Event;
 import Model.Monitor;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -59,8 +60,8 @@ public class MainView extends Application {
     /** Control buttons for starting, stopping, querying, and writing events. */
     private Button startButton, stopButton, queryButton, myWriteButton;
 
-    /** TextArea to display file system events as they occur. */
-    private TextArea fileEventArea;
+    /** TableView to display file system events as they occur. */
+    private TableView<Event> fileEventArea;
 
     /** Singleton instance of the Monitor model. */
     private static final Monitor MONITOR = Monitor.getMonitor();
@@ -216,10 +217,13 @@ public class MainView extends Application {
         //File Event Area
         Label fileEventLabel = new Label("File Event:");
         fileEventLabel.setPadding(new Insets(20, 0, 0, 0));
-        fileEventArea = new TextArea();
-        fileEventArea.setEditable(false);
-        fileEventArea.setPrefHeight(300);
-        fileEventArea.setMaxWidth(Double.MAX_VALUE);
+//        fileEventArea = new TextArea();
+//        fileEventArea.setEditable(false);
+//        fileEventArea.setPrefHeight(300);
+//        fileEventArea.setMaxWidth(Double.MAX_VALUE);
+
+
+        fileEventArea = TableBuilder.createResultTable();
         VBox.setVgrow(fileEventArea, Priority.ALWAYS);
 
 
@@ -290,7 +294,7 @@ public class MainView extends Application {
             alert.setContentText("Monitoring has been stopped.");
             alert.showAndWait();
 
-            fileEventArea.clear();
+//            fileEventArea.clear();
 
         });
 
@@ -345,7 +349,10 @@ public class MainView extends Application {
     private void eventHandling() {
 
         // monitor fires property changes to fileEventArea
-        fileEventArea.textProperty().bind(MONITOR.getEvents());
+        //fileEventArea.textProperty().bind(MONITOR.getEvents());
+
+        fileEventArea.setItems(MONITOR.getEvents());
+
     }
 }
 
