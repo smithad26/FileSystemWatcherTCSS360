@@ -4,9 +4,6 @@
 
 package Model;
 
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -21,108 +18,106 @@ import java.util.Objects;
 import static java.nio.file.StandardWatchEventKinds.*;
 
 /**
- * Monitor class uses WatchService library for monitoring files and directories.
- * There should only be one instance of this class for the whole program.
- *
- * @author Adin Smith
- * @version 4/28/2025
+ * The {@code Monitor} class uses the WatchService API to monitor file system changes
+ * in specified directories. It follows the Singleton design pattern to ensure only one
+ * instance is used throughout the application.
+ * <p>
+ * Detected file system events are recorded as {@code Event} objects.
+ * </p>
+ * 
+ * <p>Thread-safe and JavaFX-friendly through observable properties.</p>
+ * 
+ * @author Marcus Nguyen
+ * @version 6/3/2025
  */
-public class Monitor {
+public final class Monitor {
 
-    /**
-     * Global access point to class (singleton)
-     */
+    /** The singleton instance of this class. */
     private static final Monitor MONITOR = new Monitor();
 
-    /**
-     * DataBase instance.
-     */
+    /** Reference to the application’s database. */
     private static final DataBase DATABASE = DataBase.getDatabase();
 
-    /**
-     * Map containing keys of each path to file to be monitored.
-     */
+    /** Map linking WatchKeys to their associated Paths. */
     private final Map<WatchKey, Path> myKeys;
 
-    /**
-     * ObservableList for updating the view with events
-     */
+    /** Observable list of events to update the view. */
     private final ObservableList<Event> myEvents;
 
-    /**
-     * Watch service field
-     */
+    /** The WatchService instance used for monitoring. */
     private WatchService myWatcher;
 
-    /**
-     * A thread representing the separate monitoring task to be run.
-     */
+    /** The thread used for background monitoring. */
     private Thread myMonitorThread;
 
-    /**
-     * A volatile boolean used to stop running the monitoring.
-     */
+    /** A flag indicating whether the monitoring process is running. */
     private volatile boolean myRunning;
 
-    /**
-     * Represents the current file extension to monitor
-     */
+    /** The file extension currently being monitored. */
     private String myExtension;
 
     /**
-     * Constructor for Monitor object
+     * Private constructor to enforce Singleton usage.
+     * Initializes internal data structures and attempts to set up the WatchService.
      */
     private Monitor() {
         myKeys = new Hashtable<>();
         myEvents = FXCollections.observableArrayList();
-        myWatcher = null;
+        myExtension = "none";
+
         try {
             myWatcher = FileSystems.getDefault().newWatchService();
-        } catch (IOException e) {
-            System.out.println("Error caught in Monitor constructor: " + e);
+        } catch (final IOException e) {
+            System.err.println("Failed to initialize WatchService: " + e.getMessage());
         }
+
         myRunning = false;
-        myExtension = "none";
     }
 
     /**
-     * Adds the given path to file to the map.
+     * Returns the single instance of the Monitor class.
      *
-     * @param thePath the given path to be added.
+     * @return the Monitor instance.
+     */
+    public static Monitor getMonitor() {
+        return MONITOR;
+    }
+
+    /**
+     * Adds a directory and all its subdirectories to be monitored.
+     *
+     * @param thePath the path of the directory to add.
      */
     public void addFile(final String thePath) {
         try {
-            Path path = Paths.get(thePath);
+            final Path path = Paths.get(thePath);
             walkThroughDir(path);
-        } catch (IOException e) {
-            System.out.println("Error caught in Monitor addFile: " + e);
+        } catch (final IOException e) {
+            System.err.println("Error adding file: " + e.getMessage());
         }
     }
 
     /**
-     * registers the given path to the myKeys map.
+     * Registers a directory to be monitored for changes.
      *
-     * @param theDir the given path to register.
-     * @throws IOException if exception occurs
+     * @param theDir the directory to register.
+     * @throws IOException if registration fails.
      */
     private void registerDirectory(final Path theDir) throws IOException {
-
-        WatchKey watchkey = theDir.register(myWatcher,
-                ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
-        myKeys.put(watchkey, theDir);
+        final WatchKey watchKey = theDir.register(myWatcher, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
+        myKeys.put(watchKey, theDir);
     }
 
     /**
-     * Recursively adds and registers all files and subdirectories to the myKeys map.
+     * Recursively walks through a directory and registers all subdirectories.
      *
-     * @param theStart the starting path to walk through.
-     * @throws IOException if exception occurs
+     * @param theStart the root path to begin from.
+     * @throws IOException if an I/O error occurs.
      */
     private void walkThroughDir(final Path theStart) throws IOException {
-        // register directory and sub-directories
-        Files.walkFileTree(theStart, new SimpleFileVisitor<Path>() {
+        Files.walkFileTree(theStart, new SimpleFileVisitor<>() {
             @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+            public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
                 registerDirectory(dir);
                 return FileVisitResult.CONTINUE;
             }
@@ -130,7 +125,7 @@ public class Monitor {
     }
 
     /**
-     * Starts monitoring
+     * Starts the background monitoring thread.
      */
     public void startMonitoring() {
         myRunning = true;
@@ -140,7 +135,7 @@ public class Monitor {
     }
 
     /**
-     * Stops monitoring
+     * Stops the background monitoring thread gracefully.
      */
     public void stopMonitoring() {
         myRunning = false;
@@ -150,112 +145,93 @@ public class Monitor {
     }
 
     /**
-     * Getter for getting the only instance of this class.
-     *
-     * @return the only instance of the monitor class.
-     */
-    public static Monitor getMonitor() {
-        return MONITOR;
-    }
-
-    /**
-     * Monitors for events and fires a property change when an event occurs.
+     * Main monitoring logic that listens for file system events and processes them.
      */
     private void monitoring() {
         WatchKey key;
         try {
             while (myRunning && (key = myWatcher.take()) != null) {
-                Path dir = myKeys.get(key);
+                final Path dir = myKeys.get(key);
                 if (dir == null) {
-                    System.err.println("WatchKey not recognized!");
+                    System.err.println("Unrecognized WatchKey.");
                     continue;
                 }
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    WatchEvent.Kind<?> kind = event.kind();
-                    // Context for directory entry event is the file name of
-                    @SuppressWarnings("unchecked")
-                    Path name = ((WatchEvent<Path>) event).context();
-                    Path child = dir.resolve(name);
 
-                    // Check if the file matches the monitoring extension
-                    // and skip if necessary
-                    String extension = getFileExtension(child.toString());
-                    if (!extension.equalsIgnoreCase(myExtension) &&
-                            !myExtension.equalsIgnoreCase("none")) {
+                for (final WatchEvent<?> event : key.pollEvents()) {
+                    final WatchEvent.Kind<?> kind = event.kind();
+
+                    @SuppressWarnings("unchecked")
+                    final Path name = ((WatchEvent<Path>) event).context();
+                    final Path child = dir.resolve(name);
+
+                    final String extension = getFileExtension(child.toString());
+                    if (!extension.equalsIgnoreCase(myExtension)
+                            && !myExtension.equalsIgnoreCase("none")) {
                         continue;
                     }
 
-                    // fire property change and add to database
-                    // Filename, Event, Timestamp, Extension, Directory
-                    Event out = new Event(
-                            event.context().toString(),
-                            event.kind().name(),
+                    final Event out = new Event(
+                            name.toString(),
+                            kind.name(),
                             Instant.now().toString(),
                             extension,
-                            child.toString());
+                            child.toString()
+                    );
 
                     myEvents.add(out);
                     DATABASE.addEvent(out);
 
-                    // if directory is created, and watching recursively,
-                    // then register it and its sub-directories
-                    if (kind == ENTRY_CREATE) {
+                    if (kind == ENTRY_CREATE && Files.isDirectory(child)) {
                         try {
-                            if (Files.isDirectory(child)) {
-                                walkThroughDir(child);
-                            }
-                        } catch (IOException x) {
-                            // do something useful
-                            System.out.println("Error processing events: " + x);
+                            walkThroughDir(child);
+                        } catch (final IOException e) {
+                            System.err.println("Error walking new directory: " + e.getMessage());
                         }
                     }
                 }
-                // reset key and remove from set if directory no longer accessible
-                boolean valid = key.reset();
+
+                final boolean valid = key.reset();
                 if (!valid) {
                     myKeys.remove(key);
-
-                    // all directories are inaccessible
                     if (myKeys.isEmpty()) {
                         break;
                     }
                 }
             }
-        } catch (InterruptedException e) {
-            System.out.println("Error caught in Monitor monitoring: " + e);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Monitor interrupted: " + e.getMessage());
         }
     }
 
     /**
-     * Helper method to get the file extension.
+     * Extracts the file extension from a filename.
      *
-     * @param theFileName the name of the file to get the extension from.
-     * @return the provided file's extension.
+     * @param theFileName the name of the file.
+     * @return the file extension, or an empty string if none found.
      */
     private String getFileExtension(final String theFileName) {
-        int dotIndex = theFileName.lastIndexOf('.');
+        final int dotIndex = theFileName.lastIndexOf('.');
         return (dotIndex == -1) ? "" : theFileName.substring(dotIndex);
     }
 
     /**
-     * Changes the file extension to monitor.
+     * Changes the file extension that this monitor listens for.
      *
-     * @param theExtension the new file extension to monitor.
-     * @throws NullPointerException if the given extension is null.
+     * @param theExtension the new extension to monitor (e.g., ".txt", ".java").
+     * @throws NullPointerException if the extension is {@code null}.
      */
     public void changeExtension(final String theExtension) {
-        Objects.requireNonNull(theExtension);
-
+        Objects.requireNonNull(theExtension, "Extension must not be null.");
         myExtension = theExtension;
     }
 
     /**
-     * Returns the ObservableList to be bound to the MainView
+     * Returns the list of recorded events for external viewing or binding.
      *
-     * return the myEvents ObservableList
+     * @return the observable list of events.
      */
     public ObservableList<Event> getEvents() {
         return myEvents;
     }
-
 }
