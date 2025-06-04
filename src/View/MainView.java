@@ -48,6 +48,14 @@ public class MainView extends Application {
 
     /** MenuItem under Help for showing application information. */
     private MenuItem myAbout;
+    // Menu items (moved to class level so addListeners() can access them)
+    private MenuItem newMonitorItem;
+    private MenuItem exitItem;
+    private MenuItem startMonitorItem;
+    private MenuItem stopMonitorItem;
+    private MenuItem queryEventsItem;
+    private MenuItem exportLogsItem;
+
 
     /** Dropdown for selecting which file extension to monitor. */
     private ComboBox<String> extensionDropdown;
@@ -107,28 +115,28 @@ public class MainView extends Application {
 
         //Add dropdown options to the menu bar items
         //File
-        MenuItem newMonitorItem = new MenuItem("New Monitor ");
+        newMonitorItem = new MenuItem("New Monitor ");
         newMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+N"));
 
-        MenuItem exitItem = new MenuItem("Exit");
+        exitItem = new MenuItem("Exit");
         exitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
 
         fileMenu.getItems().addAll(newMonitorItem, new SeparatorMenuItem(), exitItem);
 
         //Monitor
-        MenuItem startMonitorItem = new MenuItem("Start Monitoring");
+        startMonitorItem = new MenuItem("Start Monitoring");
         startMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
 
-        MenuItem stopMonitorItem = new MenuItem("Stop Monitoring");
+        stopMonitorItem = new MenuItem("Stop Monitoring");
         stopMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
 
         monitorMenu.getItems().addAll(startMonitorItem, stopMonitorItem);
 
         //Database
-        MenuItem queryEventsItem = new MenuItem("Query");
+        queryEventsItem = new MenuItem("Query");
         queryEventsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+D"));
 
-        MenuItem exportLogsItem = new MenuItem("Export");
+        exportLogsItem = new MenuItem("Export");
         exportLogsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
 
         databaseMenu.getItems().addAll(queryEventsItem, exportLogsItem);
@@ -341,6 +349,54 @@ public class MainView extends Application {
                    \s""");
             alert.showAndWait();
         });
+        
+
+        // File > New Monitor: Reset form and stop monitoring
+        newMonitorItem.setOnAction(e -> {
+            // Stop monitoring if active
+            MONITOR.stopMonitoring();
+
+            // Reset UI fields
+            extensionDropdown.getSelectionModel().clearSelection();
+            directoryField.clear();
+
+            // Reset buttons
+            startButton.setDisable(false);
+            stopButton.setDisable(true);
+
+            // Show confirmation alert
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Monitor Reset");
+            alert.setHeaderText(null);
+            alert.setContentText("Monitor has been reset. Please select a new directory.");
+            alert.showAndWait();
+        });
+
+        // File > Exit: Close the application
+        exitItem.setOnAction(e -> {
+            Platform.exit();
+        });
+
+        // Monitor > Start Monitoring: Simulate Start button click
+        startMonitorItem.setOnAction(e -> {
+            startButton.fire();
+        });
+
+        // Monitor > Stop Monitoring: Simulate Stop button click
+        stopMonitorItem.setOnAction(e -> {
+            stopButton.fire();
+        });
+
+        // Database > Query: Simulate Query button click
+        queryEventsItem.setOnAction(e -> {
+            queryButton.fire();
+        });
+
+        // Database > Export: Simulate Write button click
+        exportLogsItem.setOnAction(e -> {
+            myWriteButton.fire();
+        });
+
     }
 
     /**

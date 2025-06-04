@@ -36,6 +36,7 @@ public class QueryView {
     private Button searchButton;
     private Button exportButton;
     private Button emailButton;
+    private Button clearButton;
 
     // Table that displays query results
     private TableView<Event> resultTable;
@@ -94,15 +95,17 @@ public class QueryView {
         searchButton = new Button("Search");
         exportButton = new Button("Export");
         emailButton = new Button("Email");
+        clearButton = new Button("Clear");
 
         // Set consistent width for all buttons so they line up
         double buttonWidth = 250;
         searchButton.setPrefWidth(buttonWidth);
         exportButton.setPrefWidth(buttonWidth);
         emailButton.setPrefWidth(buttonWidth);
+        clearButton.setPrefWidth(buttonWidth);
 
         // Stack buttons vertically with some space and padding from the top
-        VBox buttonBox = new VBox(20, searchButton, exportButton, emailButton);
+        VBox buttonBox = new VBox(20, searchButton, exportButton, emailButton, clearButton);
         buttonBox.setPadding(new Insets(20, 0, 0, 10));
 
         //Query Results Table
@@ -151,6 +154,20 @@ public class QueryView {
                 directoryField.setText(path);
             } catch (Exception _) {}    // If user cancels the dialog box
         });
+
+        // Clears all input fields and resets the result table
+        clearButton.setOnAction(e -> {
+            // Clear all form fields
+            extensionField.clear();
+            eventTypeDropdown.getSelectionModel().clearSelection();
+            startDatePicker.setValue(null);
+            endDatePicker.setValue(null);
+            directoryField.clear();
+
+            // Clear the results from the TableView
+            DATABASE.getQuery().clear();
+        });
+
     }
 
     /**
@@ -158,6 +175,33 @@ public class QueryView {
      */
     private void addListeners() {
         searchButton.setOnAction(e -> {
+            // Extension filter
+            String ext = extensionField.getText().trim();
+            myExtensionSQL = ext.isEmpty() ? "" : "Extension = '" + ext + "'";
+
+            // Event type filter
+            String type = eventTypeDropdown.getValue();
+            myEventSQL = (type == null || type.isEmpty()) ? "" : "Event = '" + type + "'";
+
+            // Start date filter
+            if (startDatePicker.getValue() != null) {
+                myStartSQL = "Timestamp >= '" + startDatePicker.getValue() + "T00:00:00'";
+            } else {
+                myStartSQL = "";
+            }
+
+            // End date filter
+            if (endDatePicker.getValue() != null) {
+                myEndSQL = "Timestamp <= '" + endDatePicker.getValue() + "T23:59:59'";
+            } else {
+                myEndSQL = "";
+            }
+
+            // Directory filter (from user input)
+            String path = directoryField.getText().trim();
+            myDirectorySQL = path.isEmpty() ? "" : "Directory LIKE '%" + path + "%'";
+
+            // Run filtered search
             DATABASE.search(myDirectorySQL, myStartSQL, myEndSQL, myEventSQL, myExtensionSQL);
         });
 
