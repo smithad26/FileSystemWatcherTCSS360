@@ -1,177 +1,161 @@
 /*
  * TCSS 360 Course Project
  */
-
 package Model;
 
-import com.google.api.client.googleapis.json.GoogleJsonError;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-
-import com.google.api.client.http.HttpRequestInitializer;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
+import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
+import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.Gmail;
-import com.google.api.services.gmail.GmailScopes;
-import com.google.api.services.gmail.model.Draft;
-
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeBodyPart;
-import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.MimeMultipart;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import jakarta.mail.*;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
-
-import org.apache.commons.codec.binary.Base64;
 import com.google.api.services.gmail.model.Message;
+import java.io.*;
+import java.security.GeneralSecurityException;
+import java.util.Collections;
 
-
-
-
-/**
- * Handles emailing functionality through Gmail
- *
- * @author Adin Smtih
- * @version 4/28/2025
- */
 public class Email {
 
     /**
-     * The program's sending email address.
+     * The application's name for Google API identification.
      */
-    private static final String SENDING = "custom77429@gmail.com";
+    private static final String APPLICATION_NAME = "File Watcher";
 
     /**
-     * Generated app password for the program's sending email address
-     * (gmail requires a password).
+     * JSON factory using Gson instead of Jackson.
      */
-    private static final String PASSWORD = "yrrg jopn xiiq zzhs";
+    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     /**
-     * The subject for all emails to be sent.
+     * Directory to store OAuth 2.0 tokens.
      */
-    private static final String SUBJECT = "FILE WATCHER UPDATE";
+    private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
     /**
-     * The body text for all emails to be sent.
+     * Path to the client secrets JSON file (obtained from Google Cloud Console).
      */
-    private static final String BODY = "peepee poopoo hahhaha";
+    private static final String CREDENTIALS_FILE_PATH = "credentials.json"; // Update with your credentials file path
 
     /**
-     * Represents the user's email address
+     * Represents the recipient's email address.
      */
     private String myEmail;
 
     /**
-     * String property for updating view when email is updated.
-     */
-    private StringProperty myProperty;
-
-    /**
      * Constructor for creating an Email object.
      *
-     * @param theEmail the user's email address.
+     * @param theEmail the recipient's email address.
      */
     public Email(final String theEmail) {
-        myProperty = new SimpleStringProperty();
-        changeEmail(theEmail);
-    }
-
-    /**
-     * Changes the current email address to the new one.
-     *
-     * @param theNewEmail the new email to be changed to.
-     */
-    public void changeEmail(final String theNewEmail) {
-        if (theNewEmail.isEmpty()) {
-            throw new IllegalArgumentException("Email is empty!");
+        if (theEmail == null || theEmail.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is empty or null!");
         }
-        myEmail = theNewEmail;
-        myProperty.set(myEmail);
+        myEmail = theEmail.trim();
     }
 
     /**
-     * Sends an email with the given message and file
+     * Gets the current recipient email address.
      *
-     * @param theMessage the message to be sent.
-     * @param theFile the file to be sent.
+     * @return the recipient email address.
      */
-    public void sendEmail(final String theMessage, final File theFile) {
-        try {
+    public String getEmail() {
+        return myEmail;
+    }
 
-            // Create email
-            MimeMessage email = createEmail(myEmail);
+    /**
+     * Sets a new recipient email address.
+     *
+     * @param theNewEmail the new email address.
+     */
+    public void setEmail(final String theNewEmail) {
+        if (theNewEmail == null || theNewEmail.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is empty or null!");
+        }
+        myEmail = theNewEmail.trim();
+    }
 
-            // Encode email
-            Message message = createMessageWithEmail(email);
-
-            //
-
-        } catch (MessagingException | IOException e) {
-            System.out.println("Error caught while sending email: " + e);
+    /**
+     * Retrieves credentials for the Gmail API using OAuth 2.0.
+     *
+     * @param HTTP_TRANSPORT the network HTTP transport.
+     * @return the OAuth 2.0 credential.
+     * @throws IOException if the credentials file cannot be loaded or authorization fails.
+     */
+    private static Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException, GeneralSecurityException {
+        try (InputStream in = new FileInputStream(CREDENTIALS_FILE_PATH)) {
+            GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+            GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+                    HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, Collections.singletonList("https://www.googleapis.com/auth/gmail.send"))
+                    .setDataStoreFactory(new com.google.api.client.util.store.FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
+                    .setAccessType("offline")
+                    .build();
+            return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver.Builder().setPort(8888).build()).authorize("user");
         }
     }
 
     /**
-     * Create a MimeMessage using the parameters provided.
+     * Sends an email with the specified message and CSV file as an attachment using the Gmail API.
      *
-     * @param theReceivingAddress email address of the receiver
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @return the MimeMessage to be used to send email
+     * @param theMessage the body text of the email, or null for default.
+     * @param theFile the CSV file to attach, or null for no attachment.
+     * @throws IOException if file access or API communication fails.
+     * @throws GeneralSecurityException if security issues occur during authorization.
      */
-    private static MimeMessage createEmail(final String theReceivingAddress)
-            throws MessagingException {
-        Properties props = new Properties();
-        Session session = Session.getDefaultInstance(props, null);
+    public void sendEmail(final String theMessage, final File theFile) throws IOException, GeneralSecurityException {
+        if (theFile != null) {
+            if (!theFile.exists()) {
+                throw new IllegalArgumentException("CSV file does not exist: " + theFile.getAbsolutePath());
+            }
+            if (!theFile.getName().toLowerCase().endsWith(".csv")) {
+                throw new IllegalArgumentException("File must be a .csv file: " + theFile.getName());
+            }
+        }
 
-        MimeMessage email = new MimeMessage(session);
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
+                .setApplicationName(APPLICATION_NAME)
+                .build();
 
-        email.setFrom(new InternetAddress(SENDING));
-        email.addRecipient(jakarta.mail.Message.RecipientType.TO,
-                new InternetAddress(theReceivingAddress));
-        email.setSubject(SUBJECT);
-        email.setText(BODY);
+        // Construct the raw email message
+        StringBuilder emailContent = new StringBuilder();
+        emailContent.append("To: ").append(myEmail).append("\r\n");
+        emailContent.append("Subject: File Watcher Query Results\r\n");
+        emailContent.append("MIME-Version: 1.0\r\n");
+        emailContent.append("Content-Type: multipart/mixed; boundary=\"boundary123\"\r\n");
+        emailContent.append("\r\n");
+        emailContent.append("--boundary123\r\n");
+        emailContent.append("Content-Type: text/plain; charset=\"UTF-8\"\r\n");
+        emailContent.append("Content-Transfer-Encoding: 7bit\r\n");
+        emailContent.append("\r\n");
+        emailContent.append(theMessage != null ? theMessage : "Attached is your CSV file from the File Watcher app.\r\n");
+        emailContent.append("\r\n");
 
-        return email;
-    }
+        if (theFile != null) {
+            emailContent.append("--boundary123\r\n");
+            emailContent.append("Content-Type: application/octet-stream; name=\"").append(theFile.getName()).append("\"\r\n");
+            emailContent.append("Content-Transfer-Encoding: base64\r\n");
+            emailContent.append("Content-Disposition: attachment; filename=\"").append(theFile.getName()).append("\"\r\n");
+            emailContent.append("\r\n");
+            // Read file and encode to base64
+            try (FileInputStream fis = new FileInputStream(theFile)) {
+                byte[] fileBytes = new byte[(int) theFile.length()];
+                fis.read(fileBytes);
+                emailContent.append(java.util.Base64.getEncoder().encodeToString(fileBytes)).append("\r\n");
+            }
+            emailContent.append("--boundary123--");
+        }
 
-    /**
-     * Encodes the MimeMessage and returns a message to be sent.
-     *
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return the new base64url encoded message.
-     */
-    private static Message createMessageWithEmail(final MimeMessage theMessage)
-            throws MessagingException, IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        theMessage.writeTo(buffer);
-        byte[] bytes = buffer.toByteArray();
-        String encodedEmail = Base64.encodeBase64URLSafeString(bytes);
+        // Convert to Base64 for Gmail API
+        byte[] rawMessageBytes = emailContent.toString().getBytes("UTF-8");
+        String encodedEmail = java.util.Base64.getUrlEncoder().encodeToString(rawMessageBytes);
         Message message = new Message();
         message.setRaw(encodedEmail);
-        return message;
+
+        // Send the email
+        service.users().messages().send("me", message).execute();
     }
-
-    /**
-     * Creates a draft message with the attached file.
-     *
-     * @param theFile the file to be attached.
-     * @param theMessage the encoded message.
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return a draft message.
-     */
-    private static Draft createDraftMessage(final File theFile, final Message theMessage)
-            throws MessagingException, IOException {
-
-        return new Draft();
-    }
-
-
 }
