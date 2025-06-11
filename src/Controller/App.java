@@ -22,7 +22,7 @@ public class App extends Application {
     /** Database handler for file event persistence. */
     private static final DataBase DATABASE = DataBase.getDatabase();
 
-    public static void main(String[] args) {
+    public static void main(String[] theArgs) {
 
 
         launch(MainView.class);

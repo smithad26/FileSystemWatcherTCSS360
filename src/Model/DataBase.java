@@ -3,7 +3,6 @@ package Model;
 import com.opencsv.CSVWriter;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -16,7 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Instant;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -37,16 +36,6 @@ public class DataBase {
     private Connection myConn;
 
     /**
-     * StringProperty to notify the View when the DataBase has been updated.
-     */
-    private final StringProperty myChanges;
-
-    /**
-     * List of events to be added to the DataBase.
-     */
-    private final List<Event> myEvents;
-
-    /**
      * List of results from query to be displayed to the QueryView and to be
      * saved into a csv file.
      */
@@ -56,8 +45,7 @@ public class DataBase {
      * Constructs the database and sets up the connection.
      */
     private DataBase() {
-        myChanges = new SimpleStringProperty();
-        myEvents = new LinkedList<>();
+
         myQuery = FXCollections.observableArrayList();
 
         try {
@@ -93,10 +81,12 @@ public class DataBase {
         String insertion = "INSERT INTO events(Filename, Event, Timestamp, Extension, Directory) VALUES(?, ?, ?, ?, ?)";
         try (PreparedStatement statement = myConn.prepareStatement(insertion)) {
             createTableIfNotExists();
-            while (!myEvents.isEmpty()) {
+
+            List<Event> events = Monitor.getMonitor().getEvents();
+            while (!events.isEmpty()) {
 
                 // Convert String of events into array to get individual elements
-                String[] event = myEvents.removeFirst().toString().split(", ");
+                String[] event = events.removeFirst().toString().split(", ");
 
                 // Set individual elements to the insertion
                 for (int i = 0; i < event.length; i++) {
@@ -109,15 +99,6 @@ public class DataBase {
         } catch (SQLException e) {
             System.out.println("Error caught in DataBase: " + e);
         }
-    }
-
-    /**
-     * Checks if the events have already been written to the DataBase.
-     *
-     * @return if the events list is empty (events have been written).
-     */
-    public boolean isWritten() {
-        return myEvents.isEmpty();
     }
 
     /**
@@ -223,24 +204,5 @@ public class DataBase {
         return DATABASE;
     }
 
-    /**
-     * Adds the given event to the myEvents list.
-     *
-     * @param theEvent to be added.
-     * @throws NullPointerException the given event is null.
-     */
-    public void addEvent(final Event theEvent) {
-        Objects.requireNonNull(theEvent);
 
-        myEvents.add(theEvent);
-    }
-
-    /**
-     * Adds the given listener to the changes field.
-     *
-     * @param theListener the listener to be added.
-     */
-    public void addListener(final ChangeListener<String> theListener) {
-        myChanges.addListener(theListener);
-    }
 }
