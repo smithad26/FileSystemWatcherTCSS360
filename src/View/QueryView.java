@@ -205,6 +205,10 @@ public class QueryView {
             DATABASE.search(myDirectorySQL, myStartSQL, myEndSQL, myEventSQL, myExtensionSQL);
         });
 
+        emailButton.setOnAction(e -> {
+            new EmailView().display();
+        });
+
         // bind textfield
         resultTable.setItems(DATABASE.getQuery());
 

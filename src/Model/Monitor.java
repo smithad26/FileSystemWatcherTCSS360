@@ -4,9 +4,6 @@
 
 package Model;
 
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -34,10 +31,6 @@ public class Monitor {
      */
     private static final Monitor MONITOR = new Monitor();
 
-    /**
-     * DataBase instance.
-     */
-    private static final DataBase DATABASE = DataBase.getDatabase();
 
     /**
      * Map containing keys of each path to file to be monitored.
@@ -89,14 +82,12 @@ public class Monitor {
      * Adds the given path to file to the map.
      *
      * @param thePath the given path to be added.
+     * @throws IOException if the given path is invalid.
      */
-    public void addFile(final String thePath) {
-        try {
-            Path path = Paths.get(thePath);
-            walkThroughDir(path);
-        } catch (IOException e) {
-            System.out.println("Error caught in Monitor addFile: " + e);
-        }
+    public void addFile(final String thePath) throws IOException {
+
+        Path path = Paths.get(thePath);
+        walkThroughDir(path);
     }
 
     /**
@@ -106,7 +97,6 @@ public class Monitor {
      * @throws IOException if exception occurs
      */
     private void registerDirectory(final Path theDir) throws IOException {
-
         WatchKey watchkey = theDir.register(myWatcher,
                 ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
         myKeys.put(watchkey, theDir);
@@ -195,7 +185,6 @@ public class Monitor {
                             child.toString());
 
                     myEvents.add(out);
-                    DATABASE.addEvent(out);
 
                     // if directory is created, and watching recursively,
                     // then register it and its sub-directories
@@ -252,7 +241,7 @@ public class Monitor {
     /**
      * Returns the ObservableList to be bound to the MainView
      *
-     * return the myEvents ObservableList
+     * @return the myEvents ObservableList
      */
     public ObservableList<Event> getEvents() {
         return myEvents;

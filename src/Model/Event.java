@@ -100,7 +100,7 @@ public class Event {
      * Overrides Java's toString method to produce meaningful output and
      * to make displaying results easier.
      *
-     * @return a String formatted nicely rep[resenting the current event.
+     * @return a String formatted nicely representing the current event.
      */
     @Override
     public String toString() {
