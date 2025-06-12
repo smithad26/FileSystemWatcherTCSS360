@@ -6,37 +6,32 @@ package Model;
 
 import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
-import com.google.api.services.gmail.model.Draft;
 
+import com.google.api.services.gmail.model.Message;
+import com.google.auth.Credentials;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import jakarta.mail.*;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
-
 import org.apache.commons.codec.binary.Base64;
-import com.google.api.services.gmail.model.Message;
-
-
-
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.GoogleCredentials;
 
 /**
  * Handles emailing functionality through Gmail
  *
- * @author Adin Smtih
+ * @author Adin Smith
  * @version 4/28/2025
  */
 public class Email {
@@ -47,20 +42,9 @@ public class Email {
     private static final String SENDING = "custom77429@gmail.com";
 
     /**
-     * Generated app password for the program's sending email address
-     * (gmail requires a password).
-     */
-    private static final String PASSWORD = "yrrg jopn xiiq zzhs";
-
-    /**
      * The subject for all emails to be sent.
      */
     private static final String SUBJECT = "FILE WATCHER UPDATE";
-
-    /**
-     * The body text for all emails to be sent.
-     */
-    private static final String BODY = "peepee poopoo hahhaha";
 
     /**
      * Represents the user's email address
@@ -70,7 +54,7 @@ public class Email {
     /**
      * String property for updating view when email is updated.
      */
-    private StringProperty myProperty;
+    private javafx.beans.property.StringProperty myProperty;
 
     /**
      * Constructor for creating an Email object.
@@ -78,21 +62,8 @@ public class Email {
      * @param theEmail the user's email address.
      */
     public Email(final String theEmail) {
-        myProperty = new SimpleStringProperty();
+        myProperty = new javafx.beans.property.SimpleStringProperty();
         changeEmail(theEmail);
-    }
-
-    /**
-     * Changes the current email address to the new one.
-     *
-     * @param theNewEmail the new email to be changed to.
-     */
-    public void changeEmail(final String theNewEmail) {
-        if (theNewEmail.isEmpty()) {
-            throw new IllegalArgumentException("Email is empty!");
-        }
-        myEmail = theNewEmail;
-        myProperty.set(myEmail);
     }
 
     /**
@@ -103,14 +74,18 @@ public class Email {
      */
     public void sendEmail(final String theMessage, final File theFile) {
         try {
+            // Export the CSV file from the database if no file is provided
+            File csvFile = theFile != null ? theFile : new File("query_results_" + System.currentTimeMillis() + ".csv");
+            if (theFile == null) {
+                DataBase.getDatabase().export(csvFile.getPath()); // Generate CSV if not provided
+            }
 
-            // Create email
-            MimeMessage email = createEmail(myEmail);
+            // Create email with attachment
+            MimeMessage email = createEmailWithAttachment(myEmail, theMessage, csvFile);
 
-            // Encode email
+            // Encode and send the email
             Message message = createMessageWithEmail(email);
-
-            //
+            sendMessage(message);
 
         } catch (MessagingException | IOException e) {
             System.out.println("Error caught while sending email: " + e);
@@ -118,25 +93,38 @@ public class Email {
     }
 
     /**
-     * Create a MimeMessage using the parameters provided.
+     * Create a MimeMessage using the parameters provided, including an attachment.
      *
      * @param theReceivingAddress email address of the receiver
+     * @param theMessage the body text of the email
+     * @param theFile the file to attach
      * @throws MessagingException if a wrongly formatted address is encountered.
      * @return the MimeMessage to be used to send email
      */
-    private static MimeMessage createEmail(final String theReceivingAddress)
-            throws MessagingException {
+    private static MimeMessage createEmailWithAttachment(final String theReceivingAddress, final String theMessage, final File theFile)
+            throws MessagingException, IOException {
         Properties props = new Properties();
         Session session = Session.getDefaultInstance(props, null);
 
         MimeMessage email = new MimeMessage(session);
-
         email.setFrom(new InternetAddress(SENDING));
-        email.addRecipient(jakarta.mail.Message.RecipientType.TO,
-                new InternetAddress(theReceivingAddress));
+        email.addRecipient(jakarta.mail.Message.RecipientType.TO, new InternetAddress(theReceivingAddress));
         email.setSubject(SUBJECT);
-        email.setText(BODY);
 
+        // Create multipart message
+        MimeMultipart multipart = new MimeMultipart();
+        MimeBodyPart textPart = new MimeBodyPart();
+        textPart.setText(theMessage != null ? theMessage : "Attached are your query results from the File Watcher app.");
+        multipart.addBodyPart(textPart);
+
+        if (theFile != null && theFile.exists()) {
+            MimeBodyPart attachmentPart = new MimeBodyPart();
+            attachmentPart.attachFile(theFile);
+            attachmentPart.setFileName(theFile.getName());
+            multipart.addBodyPart(attachmentPart);
+        }
+
+        email.setContent(multipart);
         return email;
     }
 
@@ -159,19 +147,34 @@ public class Email {
     }
 
     /**
-     * Creates a draft message with the attached file.
+     * Sends the encoded message using the Gmail API.
      *
-     * @param theFile the file to be attached.
-     * @param theMessage the encoded message.
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return a draft message.
+     * @param theMessage the encoded message to send
+     * @throws IOException if API communication fails
      */
-    private static Draft createDraftMessage(final File theFile, final Message theMessage)
-            throws MessagingException, IOException {
+    private static <GoogleCredentials> void sendMessage(Message theMessage) throws IOException {
+        // Load pre-authorized user credentials
+        GoogleCredentials credentials;
+        credentials = GoogleCredentials.getApplicationDefault()
+                .createScoped(GmailScopes.GMAIL_SEND);
+        HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter((Credentials) credentials);
 
-        return new Draft();
+        // Create the Gmail API client
+        Gmail service = new Gmail.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance(), requestInitializer)
+                .setApplicationName("File Watcher")
+                .build();
+
+        try {
+            // Send the message
+            Message message = service.users().messages().send("me", theMessage).execute();
+            System.out.println("Message id: " + message.getId());
+        } catch (GoogleJsonResponseException e) {
+            GoogleJsonError error = e.getDetails();
+            if (error.getCode() == 403) {
+                System.err.println("Unable to send message: " + e.getDetails());
+            } else {
+                throw e;
+            }
+        }
     }
-
-
 }
