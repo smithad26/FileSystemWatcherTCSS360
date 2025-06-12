@@ -166,8 +166,8 @@ public class MainView extends Application {
         extensionDropdown = new ComboBox<>();
         extensionDropdown.setPromptText("Select extension");
         extensionDropdown.setPrefWidth(200);
-        extensionDropdown.getItems().addAll(".txt", ".java", ".log", ".md");
-        extensionDropdown.getSelectionModel().select(".txt"); // Set default
+        extensionDropdown.getItems().addAll("None",".txt", ".java", ".log", ".md");
+        extensionDropdown.getSelectionModel().select("None"); // Set default
 
         VBox extensionBox = new VBox(5, extensionLabel, extensionDropdown);
 
@@ -269,6 +269,9 @@ public class MainView extends Application {
         startButton.setOnAction(event -> {
             String path = directoryField.getText();
             String extension = extensionDropdown.getValue();
+            if (!extension.equalsIgnoreCase("None")) {
+                MONITOR.changeExtension(extension);
+            }
 
             if (path == null || path.isEmpty()) {
                 myDirectoryAlert.showAndWait();
