@@ -65,7 +65,8 @@ public class QueryView {
         //Row 1: Extension and Event Type
         extensionField = new TextField();
         eventTypeDropdown = new ComboBox<>();
-        eventTypeDropdown.setPromptText("Select event type");
+        eventTypeDropdown.getItems().addAll("ENTRY_CREATE", "ENTRY_MODIFY", "ENTRY_DELETE", "None");
+        eventTypeDropdown.getSelectionModel().select("None"); // Set default
 
         
 
@@ -181,7 +182,7 @@ public class QueryView {
 
             // Event type filter
             String type = eventTypeDropdown.getValue();
-            myEventSQL = (type == null || type.isEmpty()) ? "" : "Event = '" + type + "'";
+            myEventSQL = (type == null || type.equals("None")) ? "" : "Event = '" + type + "'";
 
             // Start date filter
             if (startDatePicker.getValue() != null) {
