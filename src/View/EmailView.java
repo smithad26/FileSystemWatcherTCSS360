@@ -19,17 +19,27 @@ public class EmailView {
         Button sendButton = new Button("Send Email");
         Label statusLabel = new Label();
 
-        // Handle button click
-        sendButton.setOnAction(e -> {
+        sendButton.setOnAction(e -> { 
             String email = emailField.getText();
             if (email.isEmpty() || !email.contains("@")) {
                 statusLabel.setText("Invalid email address.");
-            } else {
-                // Simulate sending an email (replace this with actual sending logic)
-                statusLabel.setText("Email sent to: " + email);
-                // You could also call a real method here, e.g., sendEmail(email);
-            }
-        });
+                } else {
+                    try {
+                        // Step 1: Export CSV
+                        Database.export("query_results.csv");
+            
+                        // Step 2: Send email with CSV
+                        Email sender = new Email();
+                        sender.sendEmailWithCSV(email);
+            
+                        statusLabel.setText("Email sent to: " + email);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        statusLabel.setText("Failed to send email.");
+                    }
+                }
+            });
+
 
         // Layout
         VBox root = new VBox(10, label, emailField, sendButton, statusLabel);
