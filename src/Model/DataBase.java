@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -168,9 +169,21 @@ public class DataBase {
     public void export(final String thePath) {
         Objects.requireNonNull(thePath);
 
+        String info = "FILE SYSTEM WATCHER REPORT PREPARED ON: " + Instant.now();
+
         File file = new File(thePath);
         try (FileWriter outputfile = new FileWriter(file);
-             CSVWriter writer = new CSVWriter(outputfile)) {
+             CSVWriter writer = new CSVWriter(outputfile, ',',
+                     CSVWriter.NO_QUOTE_CHARACTER,
+                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                     CSVWriter.DEFAULT_LINE_END)) {
+
+            String[] report = {info};
+            writer.writeNext(report);
+
+            // Filename, Event, Timestamp, Extension, Directory
+            String[] columns = {"Filename", "Event", "Timestamp", "Extension", "Directory"};
+            writer.writeNext(columns);
 
             for (Event e : myQuery) {
                 // Convert event into String[] and write to file
