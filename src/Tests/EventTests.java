@@ -1,3 +1,7 @@
+/*
+ * TCSS 360 Course Project
+ */
+
 package Tests;
 
 import Model.Event;

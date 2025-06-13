@@ -1,3 +1,7 @@
+/*
+ * TCSS 360 Course Project
+ */
+
 package Controller;
 
 import Model.Monitor;
@@ -13,6 +17,8 @@ import java.sql.SQLException;
 
 /**
  * Entry point for the File Watcher application.
+ *
+ * @author Marcus Nguyen
  */
 public class App extends Application {
 
@@ -22,7 +28,12 @@ public class App extends Application {
     /** Database handler for file event persistence. */
     private static final DataBase DATABASE = DataBase.getDatabase();
 
-    public static void main(String[] theArgs) {
+    /**
+     * Main method represents the main entry point into the program..
+     *
+     * @param theArgs command line arguments.
+     */
+    public static void main(final String[] theArgs) {
 
 
         launch(MainView.class);
@@ -31,19 +42,19 @@ public class App extends Application {
     /**
      * Initializes the application UI and database connection.
      *
-     * @param primaryStage the main window
+     * @param thePrimaryStage the main window
      */
     @Override
-    public void start(Stage primaryStage) {
+    public void start(final Stage thePrimaryStage) {
         try {
 
             // Create a basic layout since we cannot rely on MainView.getRoot()
             BorderPane root = new BorderPane();
             Scene scene = new Scene(root, 800, 600);
-            primaryStage.setScene(scene);
-            primaryStage.setTitle("File Watcher");
-            primaryStage.setOnCloseRequest(this::handleCloseRequest);
-            primaryStage.show();
+            thePrimaryStage.setScene(scene);
+            thePrimaryStage.setTitle("File Watcher");
+            thePrimaryStage.setOnCloseRequest(this::handleCloseRequest);
+            thePrimaryStage.show();
         } catch (Exception e) {
             System.err.println("Error initializing application: " + e.getMessage());
             Platform.exit();
@@ -54,9 +65,9 @@ public class App extends Application {
     /**
      * Handles the user closing the application window.
      *
-     * @param event the window close event
+     * @param theEvent the window close event
      */
-    private void handleCloseRequest(WindowEvent event) {
+    private void handleCloseRequest(final WindowEvent theEvent) {
         System.out.println("[App] Closing application: stopping monitor and closing database...");
         try {
             MONITOR.stopMonitoring();

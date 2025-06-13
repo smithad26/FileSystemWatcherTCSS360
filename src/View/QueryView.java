@@ -1,7 +1,10 @@
+/*
+ * TCSS 360 Course Project
+ */
+
 package View;
 
 import Model.Event;
-import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -9,13 +12,18 @@ import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.collections.FXCollections;
-import javafx.scene.control.cell.PropertyValueFactory;
 
 import Model.DataBase;
 
 import java.io.File;
 
+/**
+ * QueryView class used to create the query window in the program.
+ *
+ * @author Adin Smith
+ * @author Mohamed Mohamed
+ * @version 6/12/2025
+ */
 public class QueryView {
 
     /**
@@ -25,21 +33,63 @@ public class QueryView {
 
     // Input fields on the left
     // These are all the form fields users will fill out before running a query
-    private TextField extensionField;
-    private ComboBox<String> eventTypeDropdown;
-    private DatePicker startDatePicker;
-    private DatePicker endDatePicker;
-    private TextField directoryField;
-    private Button browseButton;
+
+    /**
+     * TextField to allow user to include extension to query.
+     */
+    private TextField myExtensionField;
+
+    /**
+     * ComboBox allows user to choose an event type to query.
+     */
+    private ComboBox<String> myEventTypeDropdown;
+
+    /**
+     * DatePicker allows user to choose a starting date to query.
+     */
+    private DatePicker myStartDatePicker;
+
+    /**
+     * DatePicker allows user to choose an ending date to query.
+     */
+    private DatePicker myEndDatePicker;
+
+    /**
+     * TextField allows user to choose a directory to query.
+     */
+    private TextField myDirectoryField;
+
+    /**
+     * Button allows user to browse a directory to query.
+     */
+    private Button myBrowseButton;
 
     //Buttons on the right (Search, Export, Email)
-    private Button searchButton;
-    private Button exportButton;
-    private Button emailButton;
-    private Button clearButton;
 
-    // Table that displays query results
-    private TableView<Event> resultTable;
+    /**
+     * Button allows user to query the results.
+     */
+    private Button mySearchButton;
+
+    /**
+     * Button allows user to export the query to a .csv file.
+     */
+    private Button myExportButton;
+
+    /**
+     * Button allows user to email the query results.
+     */
+    private Button myEmailButton;
+
+    /**
+     * Button allows user to clear the query.
+     */
+    private Button myClearButton;
+
+    /**
+     * TableView that displays the query results.
+     */
+    private TableView<Event> myResultTable;
 
     /**
      * String fields representing partial SQL statements to be queried later
@@ -63,58 +113,58 @@ public class QueryView {
         queryStage.setResizable(false); // user shouldn't resize this window
 
         //Row 1: Extension and Event Type
-        extensionField = new TextField();
-        eventTypeDropdown = new ComboBox<>();
-        eventTypeDropdown.getItems().addAll("ENTRY_CREATE", "ENTRY_MODIFY", "ENTRY_DELETE", "None");
-        eventTypeDropdown.getSelectionModel().select("None"); // Set default
+        myExtensionField = new TextField();
+        myEventTypeDropdown = new ComboBox<>();
+        myEventTypeDropdown.getItems().addAll("ENTRY_CREATE", "ENTRY_MODIFY", "ENTRY_DELETE", "None");
+        myEventTypeDropdown.getSelectionModel().select("None"); // Set default
 
         
 
         // Wrap both inputs with their labels into a row
         HBox extensionRow = new HBox(20,
-                createLabeledField("Extension:", extensionField),
-                createLabeledField("Event Type:", eventTypeDropdown)
+                createLabeledField("Extension:", myExtensionField),
+                createLabeledField("Event Type:", myEventTypeDropdown)
         );
 
         //Row 2: Start and End Date Pickers
-        startDatePicker = new DatePicker();
-        endDatePicker = new DatePicker();
+        myStartDatePicker = new DatePicker();
+        myEndDatePicker = new DatePicker();
 
         HBox dateRow = new HBox(20,
-                createLabeledField("Start Date", startDatePicker),
-                createLabeledField("End Date", endDatePicker)
+                createLabeledField("Start Date", myStartDatePicker),
+                createLabeledField("End Date", myEndDatePicker)
         );
 
         //Row 3: Directory Field + Browse Button
-        directoryField = new TextField();
-        browseButton = new Button("Browse..."); // will later open a directory picker
-        HBox directoryRow = new HBox(10, directoryField, browseButton);
+        myDirectoryField = new TextField();
+        myBrowseButton = new Button("Browse..."); // will later open a directory picker
+        HBox directoryRow = new HBox(10, myDirectoryField, myBrowseButton);
         VBox directorySection = new VBox(5, new Label("Directory:"), directoryRow);
-        directoryField.setPrefWidth(500); // makes the field wide enough to see full paths
+        myDirectoryField.setPrefWidth(500); // makes the field wide enough to see full paths
 
         //Buttons on the right side (Search / Export / Email)
-        searchButton = new Button("Search");
-        exportButton = new Button("Export");
-        emailButton = new Button("Email");
-        clearButton = new Button("Clear");
+        mySearchButton = new Button("Search");
+        myExportButton = new Button("Export");
+        myEmailButton = new Button("Email");
+        myClearButton = new Button("Clear");
 
         // Set consistent width for all buttons so they line up
         double buttonWidth = 250;
-        searchButton.setPrefWidth(buttonWidth);
-        exportButton.setPrefWidth(buttonWidth);
-        emailButton.setPrefWidth(buttonWidth);
-        clearButton.setPrefWidth(buttonWidth);
+        mySearchButton.setPrefWidth(buttonWidth);
+        myExportButton.setPrefWidth(buttonWidth);
+        myEmailButton.setPrefWidth(buttonWidth);
+        myClearButton.setPrefWidth(buttonWidth);
 
         // Stack buttons vertically with some space and padding from the top
-        VBox buttonBox = new VBox(20, searchButton, exportButton, emailButton, clearButton);
+        VBox buttonBox = new VBox(20, mySearchButton, myExportButton, myEmailButton, myClearButton);
         buttonBox.setPadding(new Insets(20, 0, 0, 10));
 
         //Query Results Table
         Label resultsLabel = new Label("Query Results:");
-        resultTable = TableBuilder.createResultTable(); // defined below
+        myResultTable = TableBuilder.createResultTable(); // defined below
 
         //Organize everything on the left: input fields + results table
-        VBox leftForm = new VBox(20, extensionRow, dateRow, directorySection, resultsLabel, resultTable);
+        VBox leftForm = new VBox(20, extensionRow, dateRow, directorySection, resultsLabel, myResultTable);
         leftForm.setPadding(new Insets(20));
         leftForm.setPrefWidth(800);
 
@@ -131,7 +181,7 @@ public class QueryView {
         addListeners();
 
         // Export button needs access to queryStage
-        exportButton.setOnAction(e -> {
+        myExportButton.setOnAction(e -> {
             // Allow user to choose where to save csv file
             FileChooser fc = new FileChooser();
             FileChooser.ExtensionFilter filter = new FileChooser.ExtensionFilter("CSV files (*.csv)", "*.csv");
@@ -145,25 +195,25 @@ public class QueryView {
         });
 
         // Browse button needs access to queryStage
-        browseButton.setOnAction(e -> {
+        myBrowseButton.setOnAction(e -> {
             DirectoryChooser dir = new DirectoryChooser();
             File chosen = dir.showDialog(queryStage);
 
             try {
                 String path = chosen.getPath();
                 myDirectorySQL = "Directory LIKE '" + path + "'";
-                directoryField.setText(path);
+                myDirectoryField.setText(path);
             } catch (Exception _) {}    // If user cancels the dialog box
         });
 
         // Clears all input fields and resets the result table
-        clearButton.setOnAction(e -> {
+        myClearButton.setOnAction(e -> {
             // Clear all form fields
-            extensionField.clear();
-            eventTypeDropdown.getSelectionModel().clearSelection();
-            startDatePicker.setValue(null);
-            endDatePicker.setValue(null);
-            directoryField.clear();
+            myExtensionField.clear();
+            myEventTypeDropdown.getSelectionModel().clearSelection();
+            myStartDatePicker.setValue(null);
+            myEndDatePicker.setValue(null);
+            myDirectoryField.clear();
 
             // Clear the results from the TableView
             DATABASE.getQuery().clear();
@@ -175,53 +225,56 @@ public class QueryView {
      * Adds listeners to buttons/elements
      */
     private void addListeners() {
-        searchButton.setOnAction(e -> {
+        mySearchButton.setOnAction(e -> {
             // Extension filter
-            String ext = extensionField.getText().trim();
+            String ext = myExtensionField.getText().trim();
             myExtensionSQL = ext.isEmpty() ? "" : "Extension = '" + ext + "'";
 
             // Event type filter
-            String type = eventTypeDropdown.getValue();
+            String type = myEventTypeDropdown.getValue();
             myEventSQL = (type == null || type.equals("None")) ? "" : "Event = '" + type + "'";
 
             // Start date filter
-            if (startDatePicker.getValue() != null) {
-                myStartSQL = "Timestamp >= '" + startDatePicker.getValue() + "T00:00:00'";
+            if (myStartDatePicker.getValue() != null) {
+                myStartSQL = "Timestamp >= '" + myStartDatePicker.getValue() + "T00:00:00'";
             } else {
                 myStartSQL = "";
             }
 
             // End date filter
-            if (endDatePicker.getValue() != null) {
-                myEndSQL = "Timestamp <= '" + endDatePicker.getValue() + "T23:59:59'";
+            if (myEndDatePicker.getValue() != null) {
+                myEndSQL = "Timestamp <= '" + myEndDatePicker.getValue() + "T23:59:59'";
             } else {
                 myEndSQL = "";
             }
 
             // Directory filter (from user input)
-            String path = directoryField.getText().trim();
+            String path = myDirectoryField.getText().trim();
             myDirectorySQL = path.isEmpty() ? "" : "Directory LIKE '%" + path + "%'";
 
             // Run filtered search
             DATABASE.search(myDirectorySQL, myStartSQL, myEndSQL, myEventSQL, myExtensionSQL);
         });
 
-        emailButton.setOnAction(e -> {
+        myEmailButton.setOnAction(e -> {
             new EmailView().display();
         });
 
         // bind textfield
-        resultTable.setItems(DATABASE.getQuery());
+        myResultTable.setItems(DATABASE.getQuery());
 
     }
 
     /**
      * This helper builds a labeled vertical layout: label on top, field underneath.
      * Makes it easy to reuse across form rows.
+     *
+     * @param theLabelText the label text to be set to.
+     * @param theField the control field to be set to.
      */
-    private VBox createLabeledField(String labelText, Control field) {
-        Label label = new Label(labelText);
-        VBox box = new VBox(5, label, field); // 5px spacing between label and field
+    private VBox createLabeledField(final String theLabelText, final Control theField) {
+        Label label = new Label(theLabelText);
+        VBox box = new VBox(5, label, theField); // 5px spacing between label and field
         return box;
     }
 

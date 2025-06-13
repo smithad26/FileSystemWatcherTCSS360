@@ -1,3 +1,7 @@
+/*
+ * TCSS 360 Course Project
+ */
+
 package View;
 
 import Model.DataBase;
@@ -5,21 +9,15 @@ import Model.Event;
 import Model.Monitor;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.DirectoryChooser;
-import javafx.event.EventHandler;
 
 import java.io.File;
-import java.nio.file.Path;
 
 /**
  * MainView is the JavaFX-based graphical user interface for the File System Watcher application.
@@ -36,40 +34,65 @@ import java.nio.file.Path;
  * <p>This class binds to the {@link Monitor} and {@link DataBase} models
  * and serves as the View component in an MVC architecture.</p>
  *
- *
+ * @author Mohamed Mohamed
+ * @version 6/12/2025
  */
 
 public class MainView extends Application {
 
     /** The main menu bar displayed at the top of the window. */
-    private MenuBar menuBar;
+    private MenuBar myMenuBar;
     /** Menus for grouping related actions. */
-    private Menu fileMenu, monitorMenu, databaseMenu, helpMenu;
+    private Menu myFileMenu, myMonitorMenu, myDataBaseMenu, myHelpMenu;
 
     /** MenuItem under Help for showing application information. */
     private MenuItem myAbout;
     // Menu items (moved to class level so addListeners() can access them)
-    private MenuItem newMonitorItem;
-    private MenuItem exitItem;
-    private MenuItem startMonitorItem;
-    private MenuItem stopMonitorItem;
-    private MenuItem queryEventsItem;
-    private MenuItem exportLogsItem;
+
+    /**
+     * MenuItem represents new monitor option.
+     */
+    private MenuItem myNewMonitorItem;
+
+    /**
+     * MenuItem represents exit option.
+     */
+    private MenuItem myExitItem;
+
+    /**
+     * MenuItem represents start monitoring option.
+     */
+    private MenuItem myStartMonitoringItem;
+
+    /**
+     * MenuItem represents stop monitoring option.
+     */
+    private MenuItem myStopMonitoringItem;
+
+    /**
+     * MenuItem represents query events option.
+     */
+    private MenuItem myQueryEventsItem;
+
+    /**
+     * MenuItem represents export logs option.
+     */
+    private MenuItem myExportLogsItem;
 
 
     /** Dropdown for selecting which file extension to monitor. */
-    private ComboBox<String> extensionDropdown;
+    private ComboBox<String> myExtensionDropdown;
 
     /** TextField for directory path input and display. */
-    private TextField directoryField;
+    private TextField myDirectoryField;
     /** Button for opening a directory chooser. */
-    private Button browseButton;
+    private Button myBrowseButton;
 
     /** Control buttons for starting, stopping, querying, and writing events. */
-    private Button startButton, stopButton, queryButton, myWriteButton;
+    private Button myStartButton, myStopButton, myQueryButton, myWriteButton;
 
     /** TableView to display file system events as they occur. */
-    private TableView<Event> fileEventArea;
+    private TableView<Event> myFileEventArea;
 
     /** Singleton instance of the Monitor model. */
     private static final Monitor MONITOR = Monitor.getMonitor();
@@ -83,18 +106,18 @@ public class MainView extends Application {
      * Initializes and displays the main application window.
      * Sets up menus, controls, layout, and binds model events to the view.
      *
-     * @param primaryStage the primary Stage for this JavaFX application
+     * @param thePrimaryStage the primary Stage for this JavaFX application
      */
     @Override
-    public void start(Stage primaryStage) {
-        primaryStage.setTitle("File System Watcher");
+    public void start(final Stage thePrimaryStage) {
+        thePrimaryStage.setTitle("File System Watcher");
 
         //Menu Bar
-        menuBar = new MenuBar();
-        fileMenu = new Menu("File");
-        monitorMenu = new Menu("Monitor");
-        databaseMenu = new Menu("Database");
-        helpMenu = new Menu("Help");
+        myMenuBar = new MenuBar();
+        myFileMenu = new Menu("File");
+        myMonitorMenu = new Menu("Monitor");
+        myDataBaseMenu = new Menu("Database");
+        myHelpMenu = new Menu("Help");
 
         // MenuItems
         myAbout = new MenuItem("About");
@@ -115,47 +138,47 @@ public class MainView extends Application {
 
         //Add dropdown options to the menu bar items
         //File
-        newMonitorItem = new MenuItem("New Monitor ");
-        newMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+N"));
+        myNewMonitorItem = new MenuItem("New Monitor ");
+        myNewMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+N"));
 
-        exitItem = new MenuItem("Exit");
-        exitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
+        myExitItem = new MenuItem("Exit");
+        myExitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
 
-        fileMenu.getItems().addAll(newMonitorItem, new SeparatorMenuItem(), exitItem);
+        myFileMenu.getItems().addAll(myNewMonitorItem, new SeparatorMenuItem(), myExitItem);
 
         //Monitor
-        startMonitorItem = new MenuItem("Start Monitoring");
-        startMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
+        myStartMonitoringItem = new MenuItem("Start Monitoring");
+        myStartMonitoringItem.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
 
-        stopMonitorItem = new MenuItem("Stop Monitoring");
-        stopMonitorItem.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
+        myStopMonitoringItem = new MenuItem("Stop Monitoring");
+        myStopMonitoringItem.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
 
-        monitorMenu.getItems().addAll(startMonitorItem, stopMonitorItem);
+        myMonitorMenu.getItems().addAll(myStartMonitoringItem, myStopMonitoringItem);
 
         //Database
-        queryEventsItem = new MenuItem("Query");
-        queryEventsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+D"));
+        myQueryEventsItem = new MenuItem("Query");
+        myQueryEventsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+D"));
 
-        exportLogsItem = new MenuItem("Export");
-        exportLogsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
+        myExportLogsItem = new MenuItem("Export");
+        myExportLogsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
 
-        databaseMenu.getItems().addAll(queryEventsItem, exportLogsItem);
+        myDataBaseMenu.getItems().addAll(myQueryEventsItem, myExportLogsItem);
 
         //Help
         myAbout.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
 
-        helpMenu.getItems().add(myAbout);
+        myHelpMenu.getItems().add(myAbout);
 
 
 
-        menuBar.getMenus().addAll(
-                fileMenu,
+        myMenuBar.getMenus().addAll(
+                myFileMenu,
                 separator1,
-                monitorMenu,
+                myMonitorMenu,
                 separator2,
-                databaseMenu,
+                myDataBaseMenu,
                 separator3,
-                helpMenu
+                myHelpMenu
         );
 
 
@@ -163,59 +186,59 @@ public class MainView extends Application {
 
         // File extension dropdown
         Label extensionLabel = new Label("Monitor by extension");
-        extensionDropdown = new ComboBox<>();
-        extensionDropdown.setPromptText("Select extension");
-        extensionDropdown.setPrefWidth(200);
-        extensionDropdown.getItems().addAll("None",".txt", ".java", ".log", ".md");
-        extensionDropdown.getSelectionModel().select("None"); // Set default
+        myExtensionDropdown = new ComboBox<>();
+        myExtensionDropdown.setPromptText("Select extension");
+        myExtensionDropdown.setPrefWidth(200);
+        myExtensionDropdown.getItems().addAll("None",".txt", ".java", ".log", ".md");
+        myExtensionDropdown.getSelectionModel().select("None"); // Set default
 
-        VBox extensionBox = new VBox(5, extensionLabel, extensionDropdown);
+        VBox extensionBox = new VBox(5, extensionLabel, myExtensionDropdown);
 
         // Directory text field and browse button
         Label directoryLabel = new Label("Directory:");
-        directoryField = new TextField();
-        directoryField.setPrefWidth(300);
-        browseButton = new Button("Browse...");
+        myDirectoryField = new TextField();
+        myDirectoryField.setPrefWidth(300);
+        myBrowseButton = new Button("Browse...");
 
-        HBox directoryBox = new HBox(10, directoryField, browseButton);
+        HBox directoryBox = new HBox(10, myDirectoryField, myBrowseButton);
         VBox directorySection = new VBox(5, directoryLabel, directoryBox);
 
         // Combine top-left controls
         VBox leftControls = new VBox(30, extensionBox, directorySection);
 
         //Right-Side Buttons
-        startButton = new Button("Start");
-        startButton.setPadding(new Insets(5, 30, 5, 30));
-        stopButton = new Button("Stop");
-        stopButton.setPadding(new Insets(5, 30, 5, 30));
-        queryButton = new Button("Query");
-        queryButton.setPadding(new Insets(5, 30, 5, 30));
+        myStartButton = new Button("Start");
+        myStartButton.setPadding(new Insets(5, 30, 5, 30));
+        myStopButton = new Button("Stop");
+        myStopButton.setPadding(new Insets(5, 30, 5, 30));
+        myQueryButton = new Button("Query");
+        myQueryButton.setPadding(new Insets(5, 30, 5, 30));
 
         myWriteButton = new Button("Write Contents");
         myWriteButton.setPadding(new Insets(5, 30, 5, 30));
         myWriteButton.setPrefWidth(150);
 
 
-        startButton.setPrefWidth(150);
-        stopButton.setPrefWidth(150);
-        stopButton.setDisable(true); // App starts in a non-monitoring state
-        queryButton.setPrefWidth(150);
+        myStartButton.setPrefWidth(150);
+        myStopButton.setPrefWidth(150);
+        myStopButton.setDisable(true); // App starts in a non-monitoring state
+        myQueryButton.setPrefWidth(150);
 
 
-        VBox buttonBox = new VBox(30, startButton, stopButton, queryButton, myWriteButton);
+        VBox buttonBox = new VBox(30, myStartButton, myStopButton, myQueryButton, myWriteButton);
         buttonBox.setPadding(new Insets(40, 10, 0, 30));
 
         // add listeners to components (functionality)
         addListeners();
 
-        browseButton.setOnAction(e -> {
+        myBrowseButton.setOnAction(e -> {
             DirectoryChooser dir = new DirectoryChooser();
-            File chosen = dir.showDialog(primaryStage);
+            File chosen = dir.showDialog(thePrimaryStage);
 
             String path = chosen.getPath();
             try {
                 MONITOR.addFile(path);
-                directoryField.setText(path);
+                myDirectoryField.setText(path);
             } catch (Exception i) {
                 myDirectoryAlert.showAndWait();
             }
@@ -225,23 +248,18 @@ public class MainView extends Application {
         //File Event Area
         Label fileEventLabel = new Label("File Event:");
         fileEventLabel.setPadding(new Insets(20, 0, 0, 0));
-//        fileEventArea = new TextArea();
-//        fileEventArea.setEditable(false);
-//        fileEventArea.setPrefHeight(300);
-//        fileEventArea.setMaxWidth(Double.MAX_VALUE);
+
+        myFileEventArea = TableBuilder.createResultTable();
+        VBox.setVgrow(myFileEventArea, Priority.ALWAYS);
 
 
-        fileEventArea = TableBuilder.createResultTable();
-        VBox.setVgrow(fileEventArea, Priority.ALWAYS);
-
-
-        VBox centerContent = new VBox(20, leftControls, fileEventLabel, fileEventArea);
+        VBox centerContent = new VBox(20, leftControls, fileEventLabel, myFileEventArea);
         centerContent.setPadding(new Insets(40, 0, 0, 0));
 
 
         //Layout Configuration
         BorderPane layout = new BorderPane();
-        layout.setTop(menuBar);
+        layout.setTop(myMenuBar);
         layout.setCenter(centerContent);
         layout.setRight(buttonBox);
         layout.setPadding(new Insets(15));
@@ -251,8 +269,8 @@ public class MainView extends Application {
 
         //Scene Setup
         Scene scene = new Scene(layout, 700, 800);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        thePrimaryStage.setScene(scene);
+        thePrimaryStage.show();
     }
 
     /**
@@ -266,9 +284,9 @@ public class MainView extends Application {
         });
 
         // needs to be fixed
-        startButton.setOnAction(event -> {
-            String path = directoryField.getText();
-            String extension = extensionDropdown.getValue();
+        myStartButton.setOnAction(event -> {
+            String path = myDirectoryField.getText();
+            String extension = myExtensionDropdown.getValue();
             if (!extension.equalsIgnoreCase("None")) {
                 MONITOR.changeExtension(extension);
             }
@@ -283,20 +301,20 @@ public class MainView extends Application {
                 MONITOR.startMonitoring();
 
                 // Disable Start button and enable Stop
-                startButton.setDisable(true);
-                stopButton.setDisable(false);
+                myStartButton.setDisable(true);
+                myStopButton.setDisable(false);
             } catch (Exception e) {
                 myDirectoryAlert.showAndWait();
             }
         });
 
         // needs to be fixed
-        stopButton.setOnAction(event -> {
+        myStopButton.setOnAction(event -> {
             MONITOR.stopMonitoring();
 
             // Enable Start button and disable Stop
-            startButton.setDisable(false);
-            stopButton.setDisable(true);
+            myStartButton.setDisable(false);
+            myStopButton.setDisable(true);
 
             // Add this alert
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -310,13 +328,13 @@ public class MainView extends Application {
         });
 
         //Added: Query pop up window opens when Query button is clicked
-        queryButton.setOnAction(event -> {
+        myQueryButton.setOnAction(event -> {
             new QueryView().display();
         });
 
         // needs to be fixed
-        directoryField.setOnAction(event -> {
-            String path = directoryField.getText();
+        myDirectoryField.setOnAction(event -> {
+            String path = myDirectoryField.getText();
             try {
                 MONITOR.addFile(path);
             } catch (Exception e) {
@@ -324,12 +342,12 @@ public class MainView extends Application {
             }
         });
 
-        browseButton.setOnAction(event -> {
+        myBrowseButton.setOnAction(event -> {
             DirectoryChooser chooser = new DirectoryChooser();
             chooser.setTitle("Select Directory");
             File selectedDir = chooser.showDialog(null);
             if (selectedDir != null) {
-                directoryField.setText(selectedDir.getAbsolutePath());
+                myDirectoryField.setText(selectedDir.getAbsolutePath());
             }
         });
 
@@ -355,17 +373,17 @@ public class MainView extends Application {
         
 
         // File > New Monitor: Reset form and stop monitoring
-        newMonitorItem.setOnAction(e -> {
+        myNewMonitorItem.setOnAction(e -> {
             // Stop monitoring if active
             MONITOR.stopMonitoring();
 
             // Reset UI fields
-            extensionDropdown.getSelectionModel().clearSelection();
-            directoryField.clear();
+            myExtensionDropdown.getSelectionModel().clearSelection();
+            myDirectoryField.clear();
 
             // Reset buttons
-            startButton.setDisable(false);
-            stopButton.setDisable(true);
+            myStartButton.setDisable(false);
+            myStopButton.setDisable(true);
 
             // Show confirmation alert
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -376,27 +394,27 @@ public class MainView extends Application {
         });
 
         // File > Exit: Close the application
-        exitItem.setOnAction(e -> {
+        myExitItem.setOnAction(e -> {
             Platform.exit();
         });
 
         // Monitor > Start Monitoring: Simulate Start button click
-        startMonitorItem.setOnAction(e -> {
-            startButton.fire();
+        myStartMonitoringItem.setOnAction(e -> {
+            myStartButton.fire();
         });
 
         // Monitor > Stop Monitoring: Simulate Stop button click
-        stopMonitorItem.setOnAction(e -> {
-            stopButton.fire();
+        myStopMonitoringItem.setOnAction(e -> {
+            myStopButton.fire();
         });
 
         // Database > Query: Simulate Query button click
-        queryEventsItem.setOnAction(e -> {
-            queryButton.fire();
+        myQueryEventsItem.setOnAction(e -> {
+            myQueryButton.fire();
         });
 
         // Database > Export: Simulate Write button click
-        exportLogsItem.setOnAction(e -> {
+        myExportLogsItem.setOnAction(e -> {
             myWriteButton.fire();
         });
 
@@ -408,9 +426,8 @@ public class MainView extends Application {
     private void eventHandling() {
 
         // monitor fires property changes to fileEventArea
-        //fileEventArea.textProperty().bind(MONITOR.getEvents());
 
-        fileEventArea.setItems(MONITOR.getEvents());
+        myFileEventArea.setItems(MONITOR.getEvents());
 
     }
 }
