@@ -1,3 +1,7 @@
+/*
+ * TCSS 360 Course Project
+ */
+
 package Tests;
 
 import Model.Event;
@@ -14,12 +18,37 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for Monitor class.
+ *
+ * @author Adin Smith
+ * @version 6/13/2025
+ */
 class MonitorTests {
+
+    /**
+     * Monitor instance.
+     */
     private static final Monitor MONITOR = Monitor.getMonitor();
+
+    /**
+     * Path to the testing directory to monitor.
+     */
     private static final String TEST_PATH = "MonitorTesting";
+
+    /**
+     * List of events recorded from the monitor.
+     */
     private static final List<Event> TEST_LIST = MONITOR.getEvents();
+
+    /**
+     * A wait time to give the thread time to catch events.
+     */
     private static final int WAIT_TIME = 500;
 
+    /**
+     * Sets up the testing directory.
+     */
     @BeforeAll
     static void setUp() {
         // Add the test directory to be monitored
@@ -35,26 +64,40 @@ class MonitorTests {
         }
     }
 
+    /**
+     * Deletes the testing directory.
+     */
     @AfterAll
     static void tearDown() {
         File dir = new File(TEST_PATH);
         dir.delete();
     }
 
+    /**
+     * Tests adding an invalid file.
+     */
     @Test
     void testAddFileInvalid() {
 
-        assertThrows(IOException.class, () -> MONITOR.addFile("invalid"), "Should throw an exception");
+        assertThrows(IOException.class, () -> MONITOR.addFile("invalid"),
+                "Should throw an exception");
 
     }
 
+    /**
+     * Tests adding a null object to the monitor.
+     */
     @Test
     void testAddFileNull() {
 
-        assertThrows(NullPointerException.class, () -> MONITOR.addFile(null), "Should throw an exception");
+        assertThrows(NullPointerException.class, () -> MONITOR.addFile(null),
+                "Should throw an exception");
 
     }
 
+    /**
+     * Tests monitoring without a specific extension.
+     */
     @Test
     void testMonitoringNoExtension() {
         TEST_LIST.clear();
@@ -82,6 +125,9 @@ class MonitorTests {
 
     }
 
+    /**
+     * Tests monitoring given a specific extension.
+     */
     @Test
     void testMonitoringWithExtension() {
         TEST_LIST.clear();

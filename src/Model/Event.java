@@ -1,3 +1,7 @@
+/*
+ * TCSS 360 Course Project
+ */
+
 package Model;
 
 import java.util.Objects;
@@ -8,7 +12,7 @@ import java.util.Objects;
  * @author Adin Smtih
  * @version 6/13/2025
  */
-public class Event {
+public class Event implements Comparable<Event> {
 
     /**
      * Represents the name of the file.
@@ -110,6 +114,21 @@ public class Event {
                 myTimestamp,
                 myExtension,
                 myDirectory);
+    }
+
+    /**
+     * Overrides Java's compareTo method to make events comparable for unit testing.
+     *
+     * @param theOther the object to be compared.
+     * @return whether the two events are the same or not.
+     */
+    @Override
+    public int compareTo(Event theOther) {
+        if (this.toString().equals(theOther.toString())) {
+            return 0;
+        } else {
+            return this.toString().length() - theOther.toString().length();
+        }
     }
 }
 

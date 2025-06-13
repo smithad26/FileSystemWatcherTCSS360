@@ -1,8 +1,10 @@
+/*
+ * TCSS 360 Course Project
+ */
+
 package Model;
 
 import com.opencsv.CSVWriter;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -16,12 +18,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Handles SQLite database operations for file events.
+ *
+ * @author Adin Smith
+ * @author Marcus Nguyen
+ * @version 6/12/2025
  */
 public class DataBase {
     /**
@@ -78,7 +83,8 @@ public class DataBase {
      * Writes the Events in myEvents to the database.
      */
     public void writeEvents() {
-        String insertion = "INSERT INTO events(Filename, Event, Timestamp, Extension, Directory) VALUES(?, ?, ?, ?, ?)";
+        String insertion = "INSERT INTO events(Filename, Event, " +
+                "Timestamp, Extension, Directory) VALUES(?, ?, ?, ?, ?)";
         try (PreparedStatement statement = myConn.prepareStatement(insertion)) {
             createTableIfNotExists();
 
@@ -106,7 +112,7 @@ public class DataBase {
      *
      * @param theSpecifics user defined specifics to query from.
      */
-    public void search(String... theSpecifics) {
+    public void search(final String... theSpecifics) {
         // Reset the list
         myQuery.clear();
         try {
@@ -129,7 +135,8 @@ public class DataBase {
                 statement.delete(statement.length() - 5, statement.length());
             }
 
-            System.out.println(statement);
+            //System.out.println(statement);
+
             // execute statement
             Statement execution = myConn.createStatement();
             ResultSet rs = execution.executeQuery(statement.toString());
@@ -158,7 +165,7 @@ public class DataBase {
      * @param thePath the path to the .csv file defined by the user.
      * @throws NullPointerException if the given path is null
      */
-    public void export(String thePath) {
+    public void export(final String thePath) {
         Objects.requireNonNull(thePath);
 
         File file = new File(thePath);

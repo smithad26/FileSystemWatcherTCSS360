@@ -1,3 +1,7 @@
+/*
+ * TCSS 360 Course Project
+ */
+
 package View;
 
 import Model.Event;
@@ -7,7 +11,20 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-public class TableBuilder {
+/**
+ * TableBuilder uses builder design pattern to build a table for events in the
+ * MainView nad QueryView classes.
+ *
+ * @author Adin Smtih
+ * @version 6/12/2025
+ */
+public final class TableBuilder {
+
+    /**
+     * Builder method creates a table.
+     *
+     * @return a table of events to be viewed.
+     */
     public static TableView<Event> createResultTable() {
         TableView<Event> table = new TableView<>();
         table.setEditable(false); // users can't edit any cells
@@ -32,7 +49,7 @@ public class TableBuilder {
                 }
             }
         });
-        nameCol.setPrefWidth(100);
+        nameCol.setPrefWidth(100 );
         nameCol.setResizable(false);
 
         TableColumn<Event, String> typeCol = new TableColumn<>("Event Type");
