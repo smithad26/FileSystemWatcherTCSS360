@@ -4,34 +4,26 @@
 
 package Model;
 
-import com.google.api.client.googleapis.json.GoogleJsonError;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.services.gmail.Gmail;
-import com.google.api.services.gmail.GmailScopes;
-import com.google.api.services.gmail.model.Draft;
-
+import java.time.Instant;
+import java.util.Properties;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import java.io.File;
+import jakarta.activation.DataHandler;
+import jakarta.activation.FileDataSource;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.Multipart;
 import jakarta.mail.internet.MimeMultipart;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import jakarta.mail.*;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
-
-import org.apache.commons.codec.binary.Base64;
-import com.google.api.services.gmail.model.Message;
-
-
-
 
 /**
  * Handles emailing functionality through Gmail
@@ -41,6 +33,9 @@ import com.google.api.services.gmail.model.Message;
  */
 public class Email {
 
+
+    private static final String SMTP_HOST = "smtp.gmail.com";
+    private static final String SMTP_PORT = "587";
     /**
      * The program's sending email address.
      */
@@ -60,7 +55,7 @@ public class Email {
     /**
      * The body text for all emails to be sent.
      */
-    private static final String BODY = "peepee poopoo hahhaha";
+    private static final String BODY = "Here is the report prepared on: " + Instant.now();
 
     /**
      * Represents the user's email address
@@ -95,83 +90,69 @@ public class Email {
         myProperty.set(myEmail);
     }
 
-    /**
-     * Sends an email with the given message and file
-     *
-     * @param theMessage the message to be sent.
-     * @param theFile the file to be sent.
-     */
-    public void sendEmail(final String theMessage, final File theFile) {
+
+    public void sendEmailWithAttachment(final String theFilePath) {
+        // Set up email properties
+        final Properties properties = new Properties();
+        properties.put("mail.smtp.auth", "true");
+        properties.put("mail.smtp.starttls.enable", "true");
+        properties.put("mail.smtp.host", SMTP_HOST);
+        properties.put("mail.smtp.port", SMTP_PORT);
+
+        // Authenticate using username and password
+        final Session session = Session.getInstance(properties, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(SENDING, PASSWORD);
+            }
+        });
+
         try {
+            // Check if the file path is null or file doesn't exist
+            if (theFilePath == null || theFilePath.isEmpty()) {
+                throw new IllegalArgumentException("File path is null or empty.");
+            }
 
-            // Create email
-            MimeMessage email = createEmail(myEmail);
+            final File file = new File(theFilePath);
+            if (!file.exists()) {
+                throw new IllegalArgumentException("File does not exist: " + theFilePath);
+            }
 
-            // Encode email
-            Message message = createMessageWithEmail(email);
+            // Create email message
+            final Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(SENDING));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(myEmail));
+            message.setSubject(SUBJECT);
 
-            //
+            // Create a multipart message
+            final Multipart multipart = new MimeMultipart();
 
-        } catch (MessagingException | IOException e) {
-            System.out.println("Error caught while sending email: " + e);
+            // Add email text
+            final MimeBodyPart textPart = new MimeBodyPart();
+            textPart.setText(BODY);
+            multipart.addBodyPart(textPart);
+
+            // Add file attachment
+            final MimeBodyPart attachmentPart = new MimeBodyPart();
+            attachmentPart.setDataHandler(new DataHandler(new FileDataSource(file)));
+            attachmentPart.setFileName(file.getName());
+            multipart.addBodyPart(attachmentPart);
+
+            // Set the complete message parts
+            message.setContent(multipart);
+
+            // Send email
+            Transport.send(message);
+            System.out.println("Email sent successfully with attachment: " + theFilePath);
+
+        } catch (final MessagingException e) { // Catch messaging exceptions
+            e.printStackTrace(); // Log the stack trace for further analysis
+        } catch (final IllegalArgumentException e) { // Catch illegal argument exceptions
+            // Handle invalid file path exception
+        } catch (final Exception e) { // Catch any other unexpected exceptions
+            // Catch any other unexpected exceptions
+            e.printStackTrace(); // Log the stack trace for debugging
         }
     }
-
-    /**
-     * Create a MimeMessage using the parameters provided.
-     *
-     * @param theReceivingAddress email address of the receiver
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @return the MimeMessage to be used to send email
-     */
-    private static MimeMessage createEmail(final String theReceivingAddress)
-            throws MessagingException {
-        Properties props = new Properties();
-        Session session = Session.getDefaultInstance(props, null);
-
-        MimeMessage email = new MimeMessage(session);
-
-        email.setFrom(new InternetAddress(SENDING));
-        email.addRecipient(jakarta.mail.Message.RecipientType.TO,
-                new InternetAddress(theReceivingAddress));
-        email.setSubject(SUBJECT);
-        email.setText(BODY);
-
-        return email;
-    }
-
-    /**
-     * Encodes the MimeMessage and returns a message to be sent.
-     *
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return the new base64url encoded message.
-     */
-    private static Message createMessageWithEmail(final MimeMessage theMessage)
-            throws MessagingException, IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        theMessage.writeTo(buffer);
-        byte[] bytes = buffer.toByteArray();
-        String encodedEmail = Base64.encodeBase64URLSafeString(bytes);
-        Message message = new Message();
-        message.setRaw(encodedEmail);
-        return message;
-    }
-
-    /**
-     * Creates a draft message with the attached file.
-     *
-     * @param theFile the file to be attached.
-     * @param theMessage the encoded message.
-     * @throws MessagingException if a wrongly formatted address is encountered.
-     * @throws IOException if service account credentials file is not found.
-     * @return a draft message.
-     */
-    private static Draft createDraftMessage(final File theFile, final Message theMessage)
-            throws MessagingException, IOException {
-
-        return new Draft();
-    }
-
 
 }
